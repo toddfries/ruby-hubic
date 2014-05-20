@@ -1,0 +1,219 @@
+# https://api.hubic.com/docs/#/server-side
+# http://docs.openstack.org/api/openstack-object-storage/1.0/content/authentication-examples-curl.html
+
+
+require 'pathname'
+require 'uri'
+require 'time'
+
+require 'json'
+require 'faraday'
+require 'nokogiri'
+
+# TODO
+#  - verify scope (requested == granted)
+#  - better scope handling
+#  - deal with state string
+#  - refresh token and credentials
+
+# X-Storage-Url
+# X-Auth-Token
+
+require_relative 'hubic/version'
+require_relative 'hubic/store'
+require_relative 'hubic/openstack'
+require_relative 'hubic/file_ops'
+
+class Hubic
+    class Error < StandardError
+        class Auth < Error
+        end
+        class NotFound < Error
+        end
+    end
+
+
+    def self.default_client_id=(client_id)
+        @@client_id = client_id
+    end
+
+    def self.default_client_secret=(client_secret)
+        @@client_secret = client_secret
+    end
+
+    def self.default_redirect_uri=(redirect_uri)
+        @@redirect_uri = redirect_uri
+    end
+
+
+    def self.for_user(user, password=nil, store: Store[user],
+                      &password_requester)
+        h = Hubic.new(@@client_id, @@client_secret, @@redirect_uri)
+        h.for_user(user, password, store: store, &password_requester)
+        h
+    end
+
+
+    def initialize(client_id     = @@client_id,
+                   client_secret = @@client_secret,
+                   redirect_uri  = @@redirect_uri)
+        @store         = nil
+        @client_id     = client_id
+        @client_secret = client_secret
+        @redirect_uri  = redirect_uri
+        @conn          = Faraday.new('https://api.hubic.com') do |faraday|
+            faraday.request  :url_encoded
+            faraday.adapter  :net_http
+            faraday.options.params_encoder =  Faraday::FlatParamsEncoder
+        end
+        @default_container = "default"
+    end
+
+    def for_user(user, password=nil, store: Store[user], &password_requester)
+        @store         = store
+        @refresh_token = @store['refresh_token'] if @store
+
+        if @refresh_token
+            data = refresh_access_token
+            @access_token  = data[:access_token]
+            @expires_at    = data[:expires_at  ]
+        else
+            password ||= password_requester.call(user) if password_requester
+            if password.nil?
+                raise ArgumentError, "password requiered for user authorization"
+            end
+            code = get_request_code(user, password)
+            data = get_access_token(code)
+            @access_token  = data[:access_token ]
+            @expires_at    = data[:expires_in   ]
+            @refresh_token = data[:refresh_token]
+            if @store
+                @store['refresh_token'] = @refresh_token
+                @store.save
+            end
+        end
+    end
+
+
+    def account
+        api_hubic(:get, '/1.0/account')
+    end
+
+    def credentials
+        api_hubic(:get, '/1.0/account/credentials')
+    end
+
+
+
+    def [](path=nil, container=@default_container)
+#        objects(path, container: container)
+    end
+
+    
+
+    def api_hubic(method, path, params=nil)
+        r = @conn.method(method).call(path) do |req|
+            req.headers['Authorization'] = "Bearer #{@access_token}"
+            req.params = params if params
+        end
+        JSON.parse(r.body)
+    end
+
+    private
+
+
+    def get_request_code(user, password)
+        # Request code (retrieve user confirmation form)
+        r = @conn.get '/oauth/auth', {
+            :client_id     => @client_id,
+            :response_type => 'code',
+            :redirect_uri  => 'http://localhost/',
+            :scope         => 'account.r,usage.r,links.drw,credentials.r',
+            :state         => 'random'
+        }
+
+        # Autofill confirmation 
+        params = {}
+        doc = Nokogiri::HTML(r.body)
+        doc.css('input').each {|i|
+            case i[:name]
+            when 'login'
+                params[:login   ] = user
+                next
+            when 'user_pwd'
+                params[:user_pwd] = password
+                next
+            end
+            
+            case i[:type]
+            when 'checkbox', 'hidden', 'text'
+                (params[i[:name]] ||= []) << i[:value] if i[:name]
+            end
+        }
+        if params.empty?
+            raise Error, "unable to autofill confirmation form"
+        end
+
+        # Confirm and get code
+        r = @conn.post '/oauth/auth', params
+        q = Hash[URI.decode_www_form(URI(r[:location]).query)]
+
+        case r.status
+        when 302
+            q['code']
+        when 400, 401, 500
+            raise Error::Auth, "#{q['error']} #{q['error_description']}"
+        else 
+            raise Error::Auth, "unhandled response code (#{r.status})"
+        end
+    end
+
+    def get_access_token(code)
+        r = @conn.post '/oauth/token', {
+            :code          => code,
+            :redirect_uri  => 'http://localhost/',
+            :grant_type    => 'authorization_code',
+            :client_id     => @client_id,
+            :client_secret => @client_secret
+        }
+        j = JSON.parse(r.body)
+        case r.status
+        when 200
+            {   :acces_token   => j['access_token'],
+                :expires_at    => Time.parse(r[:date]) + j['expires_in'].to_i,
+                :refresh_token => j['refresh_token']
+            }
+        when 400, 401, 500
+            raise Error::Auth, "#{j['error']} #{j['error_description']}"
+        else 
+            raise Error::Auth, "unhandled response code (#{r.status})"
+        end
+    end
+
+    def refresh_access_token
+        if @refresh_token.nil?
+            raise Error, "refresh_token was not previously acquiered" 
+        end
+        r = @conn.post '/oauth/token', {
+            :refresh_token => @refresh_token,
+            :grant_type    => 'refresh_token',
+            :client_id     => @client_id,
+            :client_secret => @client_secret
+        }
+        j = JSON.parse(r.body)
+        case r.status
+        when 200
+            {   :access_token => j['access_token'],
+                :expires_at   => Time.parse(r[:date]) + j['expires_in'].to_i
+            }
+        when 400, 401, 500
+            raise Error::Auth, "#{j['error']} #{j['error_description']}"
+        else 
+            raise Error::Auth, "unhandled response code (#{r.status})"
+        end
+    end
+
+end
+
+
+
