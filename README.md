@@ -7,7 +7,8 @@ You need to retrieve the client id, secret key, and redirection url.
 For that if not alredy done you need to register an application into your account. 
 To start the registration process you will need to go to ``My Account``, select ``Your application``, and click on ``Add an application``.
 
-
+Quick example
+-------------
 ```ruby
 require 'hubic'
 
