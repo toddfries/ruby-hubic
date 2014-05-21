@@ -32,20 +32,28 @@ class Hubic
         end
     end
 
-
+    # Set the default client Id to use
     def self.default_client_id=(client_id)
         @@client_id = client_id
     end
 
+    # Set the default client Secret to use
     def self.default_client_secret=(client_secret)
         @@client_secret = client_secret
     end
 
+    # Set the default redirect URI to use
     def self.default_redirect_uri=(redirect_uri)
         @@redirect_uri = redirect_uri
     end
 
-
+    # Create a Hubic handler
+    # @param user [String]
+    # @param password [String]
+    # @param store 
+    # @param force [true, false]
+    # @param password_requester
+    # @return [Hubic] an Hubic handler
     def self.for_user(user, password=nil, 
                       store: Store[user], force: false, &password_requester)
         h = Hubic.new(@@client_id, @@client_secret, @@redirect_uri)
@@ -55,6 +63,10 @@ class Hubic
     end
 
 
+    # Create a Hubic handler
+    # @param client_id
+    # @param client_secret
+    # @param redirect_uri
     def initialize(client_id     = @@client_id,
                    client_secret = @@client_secret,
                    redirect_uri  = @@redirect_uri)
@@ -71,6 +83,12 @@ class Hubic
         @default_container = "default"
     end
 
+    # Initialize the Hubic handler to perform operations on behalf of the user
+    # @param user [String]
+    # @param password [String]
+    # @param store 
+    # @param force [true, false]
+    # @param password_requester
     def for_user(user, password=nil,
                  store: Store[user], force: false, &password_requester)
         @store         = store
@@ -98,6 +116,10 @@ class Hubic
     end
 
 
+
+
+
+
     def account
         api_hubic(:get, '/1.0/account')
     end
@@ -111,13 +133,12 @@ class Hubic
     end
 
 
-
-    def [](path=nil, container=@default_container)
-#        objects(path, container: container)
-    end
-
     
-
+    # Make a call to the Hubic API
+    # @param method [:get, :post, :delete]
+    # @param path
+    # @param params [Hash]
+    # @return [Hash]
     def api_hubic(method, path, params=nil)
         r = @conn.method(method).call(path) do |req|
             req.headers['Authorization'] = "Bearer #{@access_token}"
@@ -128,7 +149,12 @@ class Hubic
 
     private
 
-
+    # Obtain a request code from the Hubic server.
+    # We will ask for the code, and validate the form on the user behalf.
+    #
+    # @param user [String]
+    # @param password [String]
+    # @return [String] the request code
     def get_request_code(user, password)
         # Request code (retrieve user confirmation form)
         r = @conn.get '/oauth/auth', {
@@ -175,6 +201,9 @@ class Hubic
         end
     end
 
+    # Request an access token, this will also acquiere a refresh token.
+    # @param code [String] the request code
+    # @return Hash
     def get_access_token(code)
         r = @conn.post '/oauth/token', {
             :code          => code,
@@ -197,6 +226,8 @@ class Hubic
         end
     end
 
+    # Refresh the access token
+    # @return Hash
     def refresh_access_token
         if @refresh_token.nil?
             raise Error, "refresh_token was not previously acquiered" 
