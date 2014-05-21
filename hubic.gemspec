@@ -13,6 +13,8 @@ Gem::Specification.new do |s|
   s.description = "Manage your Hubic account from Ruby"
 
   s.add_dependency "faraday", "~>0.9"
+  s.add_dependency "mime-types"
+  s.add_dependency "highline"
   s.add_dependency "nokogiri"
   s.add_development_dependency "rake"
 

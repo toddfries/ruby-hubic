@@ -1,0 +1,131 @@
+#!/usr/bin/env ruby
+
+require 'rubygems'
+require 'optparse'
+require 'hubic'
+require 'highline'
+
+
+HUBIC_CLIENT_CFG = "#{ENV['HOME']}/.hubic-client"
+
+exclusive_options = []
+container = nil
+user      = ENV['HUBIC_USER']
+
+error_proc = lambda do |msg|
+  $stderr.puts(msg)
+  exit 1
+end
+
+
+options = OptionParser.new do |opts|
+    opts.banner = "Hubic: access your data"
+    opts.define_head "Usage: hubic [options] <uri|path> [file]"
+    opts.separator ""
+    opts.separator "Examples:"
+    opts.separator "  HUBIC_USER=foo@bar.com"
+    opts.separator "  hubic client   config"
+    opts.separator "  hubic auth"
+    opts.separator "  hubic upload   local-file.txt documents/cloud-file.txt"
+    opts.separator "  hubic download documents/cloud-file.txt"
+    opts.separator "  hubic delete   documents/cloud-file.txt"
+    opts.separator ""
+    opts.separator "Options:"
+    
+    opts.on_tail("-h", "--help", "Show this message") do
+        puts opts
+        exit
+    end
+    
+    opts.on("-c", "--container STRING", "Use the give container as default") do  |v|
+        container = v
+        exclusive_options << :container
+    end
+    
+
+    opts.on("-u", "--user STRING", "User account to use") do  |v|
+        user = v
+    end
+
+    opts.on("-V", "--verbose", "Be verbose about action performed") do
+        require 'logger'
+        loggers << Logger.new($stdout)
+    end
+  
+    opts.on_tail("-v", "--version", "Show version") do
+        puts "Hubic #{Hubic::VERSION}"
+        exit
+    end
+end
+opts = options
+opts.parse!
+
+$term = HighLine.new
+
+action = ARGV.shift
+
+# Manage client configuration
+if action == 'client'
+    case ARGV[0]
+    when 'config'
+        ARGV.shift
+        cfg = case ARGV.length
+              when 0
+                  [ $term.ask("Client ID    : ").to_s,
+                    $term.ask("Client Secret: ").to_s,
+                    $term.ask("Redirect URI : ").to_s ]
+              when 3
+                  ARGV
+              else
+                  error_proc["hubic client config [client_id client_secret_ redirect_uri"]
+              end
+        File.open(HUBIC_CLIENT_CFG, 'w', 0600) {|io|
+            io.write({ 'client_id'     => cfg[0],
+                       'client_secret' => cfg[1],
+                       'redirect_uri'  => cfg[2], }.to_yaml)
+        }
+        exit
+    when 'reset'
+        File.unlink(HUBIC_CLIENT_CFG)
+        exit
+    end
+end
+
+
+# Configure Hubic client
+if ENV.include?('HUBIC_REDIRECT_URI' ) &&
+   ENV.include?('HUBIC_CLIENT_ID'    ) &&
+   ENV.include?('HUBIC_CLIENT_SECRET')
+    Hubic.default_redirect_uri  = ENV['HUBIC_REDIRECT_URI' ]
+    Hubic.default_client_id     = ENV['HUBIC_CLIENT_ID'    ]
+    Hubic.default_client_secret = ENV['HUBIC_CLIENT_SECRET']
+else
+    begin
+        cfg = YAML.load_file(HUBIC_CLIENT_CFG)
+        Hubic.default_redirect_uri  = cfg['redirect_uri' ] 
+        Hubic.default_client_id     = cfg['client_id'    ] 
+        Hubic.default_client_secret = cfg['client_secret'] 
+    rescue Errno::ENOENT
+        error_proc["Plase run: hubic client config"]
+    end
+end
+
+if user.nil?
+    
+end
+
+
+case action
+when 'auth'
+    Hubic.for_user(user, ARGV[0], force: true) {|user|
+        ($term.ask("Password for #{user}: ", String) {|q| q.echo = 'x' }).to_s
+    }
+when 'download' # hubic / local
+    obj = ARGV[0]
+    dst = ARGV[1] || File.basename(obj)
+    Hubic.for_user(user).download(obj, dst)
+when 'upload'   # local / hubic
+    src = ARGV[0]
+    obj = ARGV[1]
+    Hubic.for_user(user).upload(src, obj)
+end

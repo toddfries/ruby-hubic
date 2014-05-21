@@ -9,6 +9,16 @@ To start the registration process you will need to go to ``My Account``, select 
 
 Quick example
 -------------
+```sh
+HUBIC_USER=foo@bar.com
+hubic client   config
+hubic auth
+hubic upload   local-file.txt documents/cloud-file.txt
+hubic download documents/cloud-file.txt
+hubic delete   documents/cloud-file.txt
+```
+
+
 ```ruby
 require 'hubic'
 

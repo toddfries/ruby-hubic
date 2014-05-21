@@ -46,10 +46,11 @@ class Hubic
     end
 
 
-    def self.for_user(user, password=nil, store: Store[user],
-                      &password_requester)
+    def self.for_user(user, password=nil, 
+                      store: Store[user], force: false, &password_requester)
         h = Hubic.new(@@client_id, @@client_secret, @@redirect_uri)
-        h.for_user(user, password, store: store, &password_requester)
+        h.for_user(user, password, 
+                   store: store, force: force, &password_requester)
         h
     end
 
@@ -58,6 +59,7 @@ class Hubic
                    client_secret = @@client_secret,
                    redirect_uri  = @@redirect_uri)
         @store         = nil
+        @refresh_token = nil
         @client_id     = client_id
         @client_secret = client_secret
         @redirect_uri  = redirect_uri
@@ -69,9 +71,10 @@ class Hubic
         @default_container = "default"
     end
 
-    def for_user(user, password=nil, store: Store[user], &password_requester)
+    def for_user(user, password=nil,
+                 store: Store[user], force: false, &password_requester)
         @store         = store
-        @refresh_token = @store['refresh_token'] if @store
+        @refresh_token = @store['refresh_token'] if @store && !force
 
         if @refresh_token
             data = refresh_access_token
@@ -101,6 +104,10 @@ class Hubic
 
     def credentials
         api_hubic(:get, '/1.0/account/credentials')
+    end
+
+    def usage
+        api_hubic(:get, '/1.0/account/usage')
     end
 
 

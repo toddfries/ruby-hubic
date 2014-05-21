@@ -118,16 +118,49 @@ class Hubic
         http.finish unless http.nil?
     end
 
-    def put_object(src, obj, &block)
+    def put_object(obj, src, type='application/octet-stream', &block)
         container, path, uri = normalize_object(obj)
+        io = File.open(src)
 
-        r = @conn.put(uri) do |req|
-            req.headers['X-Auth-Token'] = @os[:token]
-            req.params[:file] = Faraday::UploadIO.new(src, 'text/plain')
+        hdrs = {}
+        hdrs['X-Auth-Token'     ] = @os[:token]
+        hdrs['Transfer-Encoding'] = 'chunked'
+        hdrs['Content-Type'     ] = type
+
+        http = Net::HTTP.new(uri.host, uri.port)
+        if uri.scheme == 'https'
+            http.use_ssl = true
+            # http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
-        puts r.inspect
+        http.start
+
+        request = Net::HTTP::Put.new(uri.request_uri, hdrs)
+        request.body_stream = io
+        http.request(request) {|response|
+            case response
+            when Net::HTTPSuccess
+            when Net::HTTPRedirection
+                fail "http redirect is not currently handled"
+            when Net::HTTPUnauthorized
+                # TODO: Need to refresh token
+            else
+                fail "resource unavailable: #{uri} (#{response.class})"
+            end
+
+            puts response.inspect
+        }
+        if block
+            block.call(:done)
+        end
+    ensure
+        io.close unless io.nil?
+        http.finish unless http.nil?
     end
 
+    # List objects store in a container.
+    #
+    # @param container [String] the name of the container.
+    # @return [Array] the list of objects (as a Hash)
     def objects(container = @default_container, 
                 path: nil, limit: nil, gt: nil, lt: nil)
         path = path[1..-1] if path && path[0] == ?/
@@ -163,7 +196,7 @@ class Hubic
         params[:format] ||= :json
 
         p = "#{@os[:endpoint]}#{'/' if path[0] != ?/}#{path}"
-        r = @conn.method(method).call(p) do |req|
+        r = @os[:conn].method(method).call(p) do |req|
             req.headers['X-Auth-Token'] = @os[:token]
             req.params = params
         end
@@ -188,6 +221,7 @@ class Hubic
 
     def openstack_setup(endpoint, token, expires)
         conn = Faraday.new  do |faraday|
+            faraday.request  :multipart
             faraday.request  :url_encoded
             faraday.adapter  :net_http
             faraday.options.params_encoder =  Faraday::FlatParamsEncoder
@@ -201,6 +235,8 @@ class Hubic
     end
 
     def normalize_object(obj)
+        openstack_setup_refresh
+
         c, p = case obj
                when String 
                    [ @default_container, obj ]
@@ -213,6 +249,8 @@ class Hubic
                    when 2 then Symbol === obj[1] ? [ obj[1], obj[0] ] : obj
                    else raise ArguementError
                    end
+               else
+                   raise ArgumentError
                end
         c = c.to_s
         p = p[1..-1] if p[0] == ?/
