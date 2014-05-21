@@ -4,21 +4,25 @@ Hubic
 Requirement
 -----------
 You need to retrieve the client id, secret key, and redirection url. 
-For that if not alredy done you need to register an application into your account. 
-To start the registration process you will need to go to ``My Account``, select ``Your application``, and click on ``Add an application``.
+For that if not already done you need to register an application into
+your account. 
+To start the registration process you will need to go to ``My Account``,
+select ``Your application``, and click on ``Add an application``.
 
 Quick example
 -------------
+From the commande line:
+
 ```sh
-HUBIC_USER=foo@bar.com
-hubic client   config
-hubic auth
-hubic upload   local-file.txt documents/cloud-file.txt
-hubic download documents/cloud-file.txt
-hubic delete   documents/cloud-file.txt
+HUBIC_USER=foo@bar.com                  # Set the user on which we will act
+hubic client   config                   # Configure the client API key
+hubic auth                              # Authenticate the user
+hubic upload   file.txt cloud/file.txt  # Upload file
+hubic download cloud/file.txt           # Download file
+hubic delete   cloud/file.txt           # Remove file
 ```
 
-
+From a ruby script:
 ```ruby
 require 'hubic'
 
