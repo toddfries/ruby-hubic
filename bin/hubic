@@ -134,4 +134,7 @@ when 'mkdir'
 when 'mkdir_p'
     obj = ARGV[0]
     Hubic.for_user(user).mkdir(obj, parents: true)
+when 'md5'
+    obj = ARGV[0]
+    puts Hubic.for_user(user).md5(obj)
 end

@@ -30,6 +30,9 @@ class Hubic
         end
         class NotFound < Error
         end
+        class Exists < Error
+        end
+
     end
 
     # Set the default client Id to use

@@ -5,6 +5,9 @@ require 'json'
 
 
 class Hubic
+    TYPE_OCTET_STREAM = 'application/octet-stream'
+    TYPE_DIRECTORY    = 'application/directory'
+
     class Container
         attr_reader :name, :count, :bytes, :metadata
         def initialize(hubic, name)
@@ -49,10 +52,11 @@ class Hubic
         end
     end
 
-    def parse_meta(response)
+    def parse_response_for_meta(response)
         { :lastmod => (Time.parse(response['last-modified']) rescue nil),
           :length  => response.content_length,
-          :type    => response['content-type']
+          :type    => response['content-type'],
+          :etag    => response['etag']
         }
     end
 
@@ -75,7 +79,7 @@ class Hubic
         http.request_head(uri.request_uri, hdrs) {|response|
             case response
             when Net::HTTPSuccess
-                meta = parse_meta(response)
+                meta = parse_response_for_meta(response)
             when Net::HTTPNotFound
                 meta = nil
             when Net::HTTPRedirection
@@ -128,7 +132,7 @@ class Hubic
                 fail "resource unavailable: #{uri} (#{response.class})"
             end
 
-            meta    = parse_meta(response)
+            meta    = parse_response_for_meta(response)
             
             if block
                 block.call(meta)
@@ -155,7 +159,7 @@ class Hubic
         http.finish unless http.nil?
     end
 
-    def put_object(obj, src, type='application/octet-stream', &block)
+    def put_object(obj, src, type = TYPE_OCTET_STREAM, &block)
         container, path, uri = normalize_object(obj)
         case src
         when String
@@ -279,7 +283,7 @@ class Hubic
     end
 
     def normalize_object(obj)
-        openstack_setup_refresh
+        openstack_setup_refresh # TODO: no need to refresh just get the endpoint
 
         c, p = case obj
                when String 

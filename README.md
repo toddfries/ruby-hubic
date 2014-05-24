@@ -17,7 +17,9 @@ From the commande line:
 HUBIC_USER=foo@bar.com                  # Set the user on which we will act
 hubic client   config                   # Configure the client API key
 hubic auth                              # Authenticate the user
+hubic mkdir    cloud                    # Create directory
 hubic upload   file.txt cloud/file.txt  # Upload file
+hubic md5      cloud/file.txt           # Retrieve MD5
 hubic download cloud/file.txt           # Download file
 hubic delete   cloud/file.txt           # Remove file
 ```

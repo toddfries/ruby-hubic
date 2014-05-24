@@ -6,28 +6,28 @@ class Hubic
     # @param parents [true, false] 
     def mkdir(obj, parents: false)
         container, path, = normalize_object(obj)
-        parent = File.dirname(path)
+
+        # Check for parents (create or raise error)
+        parent = File.dirname(path) 
         if ! %w[. /].include?(parent)
-            meta = get_metadata([container, parent])
-            if meta.nil?
+            if (meta = get_metadata([container, parent])).nil?
                 if parents
                     mkdir([container, parent], parents: parents)
                 else
-                    raise Error, "Parent doesn't exist"
+                    raise Error, "parent doesn't exist"
                 end
-            elsif meta[:type] != "application/directory"
-                raise Error, "Parent is not a directory"
+            elsif meta[:type] != TYPE_DIRECTORY
+                raise Error, "parent is not a directory"
             end
         end
 
-        # TODO: need to check parent directory
-        meta = get_metadata(obj)
-        if meta.nil?
-            put_object(obj, nil, "application/directory")
-        elsif meta[:type] != "application/directory"
-            raise Error, "A file already exist"
+        # Check if place is already taken before creating directory
+        if (meta = get_metadata(obj)).nil?
+            put_object(obj, nil, TYPE_DIRECTORY)
+        elsif meta[:type] != TYPE_DIRECTORY
+            raise Error::Exists, "a file already exists"
         elsif !parents
-            raise Error, "Directory already exists"
+            raise Error::Exists, "the directory already exists"
         end
     end
 
@@ -59,11 +59,11 @@ class Hubic
         io.close unless io.nil?
     end
 
-    def upload(src, obj, type='application/octet-stream', &block)
+    def upload(src, obj, type=TYPE_OCTET_STREAM, &block)
         case src
         when String, Pathname
             type = (MIME::Types.of(src).first ||
-                    MIME::Types['application/octet-stream'].first).content_type
+                    MIME::Types[TYPE_OCTET_STREAM].first).content_type
         end
         put_object(obj, src, type, &block)
     end
@@ -80,8 +80,9 @@ class Hubic
         raise "not implemented yet"
     end
 
-    def checksum(src)
-        raise "not implemented yet"
+    def md5(obj)
+        meta = get_metadata(obj)
+        meta[:etag]
     end
 
 
