@@ -49,6 +49,49 @@ class Hubic
         end
     end
 
+    def parse_meta(response)
+        { :lastmod => (Time.parse(response['last-modified']) rescue nil),
+          :length  => response.content_length,
+          :type    => response['content-type']
+        }
+    end
+
+
+    def get_metadata(obj)
+        container, path, uri = normalize_object(obj)
+        meta = {}
+
+
+        hdrs = {}
+        hdrs['X-Auth-Token'] = @os[:token]
+
+        http = Net::HTTP.new(uri.host, uri.port)
+        if uri.scheme == 'https'
+            http.use_ssl = true
+            # http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        end
+        http.start
+
+        http.request_head(uri.request_uri, hdrs) {|response|
+            case response
+            when Net::HTTPSuccess
+                meta = parse_meta(response)
+            when Net::HTTPNotFound
+                meta = nil
+            when Net::HTTPRedirection
+                fail "http redirect is not currently handled"
+            when Net::HTTPUnauthorized
+                # TODO: Need to refresh token
+            else
+                fail "resource unavailable: #{uri} (#{response.class})"
+            end
+        }            
+
+        meta
+    ensure
+        http.finish unless http.nil?
+    end
+
     def get_object(obj, dst=nil, size: nil, offset: 0, &block)
         container, path, uri = normalize_object(obj)
 
@@ -85,13 +128,7 @@ class Hubic
                 fail "resource unavailable: #{uri} (#{response.class})"
             end
 
-            lastmod = Time.parse(response['last-modified']) rescue nil
-            length  = response.content_length
-            type    = response['content-type']
-            meta    = { :lastmod => lastmod, 
-                        :length  => length, 
-                        :type    => type 
-                      }
+            meta    = parse_meta(response)
             
             if block
                 block.call(meta)
@@ -120,7 +157,14 @@ class Hubic
 
     def put_object(obj, src, type='application/octet-stream', &block)
         container, path, uri = normalize_object(obj)
-        io = File.open(src)
+        case src
+        when String
+            io = File.open(src)
+        when NilClass
+            io = StringIO.new('')
+        else
+            raise ArgumentError, 'Not Implemented Yet'
+        end
 
         hdrs = {}
         hdrs['X-Auth-Token'     ] = @os[:token]

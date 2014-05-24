@@ -128,4 +128,10 @@ when 'upload'   # local / hubic
     src = ARGV[0]
     obj = ARGV[1]
     Hubic.for_user(user).upload(src, obj)
+when 'mkdir'
+    obj = ARGV[0]
+    Hubic.for_user(user).mkdir(obj, parents: false)
+when 'mkdir_p'
+    obj = ARGV[0]
+    Hubic.for_user(user).mkdir(obj, parents: true)
 end
