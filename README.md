@@ -44,3 +44,20 @@ h.upload("local-foo.txt", "hubic-bar.txt")
 ```
 
 
+HUBIC_USER=jml@finexkap.com
+
+
+SSL issues
+----------
+in case you get such an error
+``connect': SSL_connect returned=1 errno=0 state=SSLv3 read server certificate B: certificate verify failed (Faraday::SSLError)``
+here is the solution
+http://meeech.amihod.com/troubleshooting-ssl-cert-with-rbenvruby-193/
+
+basically you need to 
+``curl http://curl.haxx.se/ca/cacert.pem > cacert.pem``
+
+And then
+```sh
+export SSL_CERT_FILE=~/cacert.pem
+```

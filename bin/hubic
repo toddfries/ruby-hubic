@@ -137,4 +137,7 @@ when 'mkdir_p'
 when 'md5'
     obj = ARGV[0]
     puts Hubic.for_user(user).md5(obj)
+when 'delete'
+    obj = ARGV[0]
+    puts Hubic.for_user(user).delete(obj)
 end

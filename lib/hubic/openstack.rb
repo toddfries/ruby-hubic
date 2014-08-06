@@ -205,6 +205,42 @@ class Hubic
         http.finish unless http.nil?
     end
 
+
+    def delete_object(obj, &block)
+        container, path, uri = normalize_object(obj)
+
+        hdrs = {}
+        hdrs['X-Auth-Token'     ] = @os[:token]
+
+        http = Net::HTTP.new(uri.host, uri.port)
+        if uri.scheme == 'https'
+            http.use_ssl = true
+            # http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        end
+        http.start
+
+        request = Net::HTTP::Delete.new(uri.request_uri, hdrs)
+        http.request(request) {|response|
+            case response
+            when Net::HTTPNoContent
+            when Net::HTTPSuccess
+            when Net::HTTPRedirection
+                fail "http redirect is not currently handled"
+            when Net::HTTPUnauthorized
+                # TODO: Need to refresh token
+            else
+                fail "resource unavailable: #{uri} (#{response.class})"
+            end
+
+            puts response.inspect
+        }
+        if block
+            block.call(:done)
+        end
+    ensure
+        http.finish unless http.nil?
+    end
+
     # List objects store in a container.
     #
     # @param container [String] the name of the container.

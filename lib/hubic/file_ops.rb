@@ -76,8 +76,8 @@ class Hubic
         raise "not implemented yet"
     end
 
-    def delete(src)
-        raise "not implemented yet"
+    def delete(obj)
+        delete_object(obj)
     end
 
     def md5(obj)
