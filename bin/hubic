@@ -4,6 +4,7 @@ require 'rubygems'
 require 'optparse'
 require 'hubic'
 require 'highline'
+require 'ostruct'
 
 
 HUBIC_CLIENT_CFG = "#{ENV['HOME']}/.hubic-client"
@@ -139,8 +140,45 @@ when 'md5'
     obj = ARGV[0]
     puts Hubic.for_user(user).md5(obj)
 when 'list', 'ls'
+
+    copts = OpenStruct.new
+    OptionParser.new {|opts|
+        opts.on("-l", "long") do  |v|
+            copts.long = true
+        end
+        opts.on("-a", "all") do  |v|
+            copts.all  = true
+        end
+    }.parse!
+    
+    if copts.long
+    else
+    end
+
+    
     obj = ARGV[0]
-    puts Hubic.for_user(user).list(obj)
+    
+    Hubic.for_user(user).list(obj).each {|file, meta|
+        file = file.split('/')[-1] if obj
+
+        next if !copts.all && file[0] == ?. 
+
+        type = case meta[:type]
+               when 'application/directory' then :directory
+               else                              :file
+               end
+        time = meta[:lastmod].strftime("%Y-%m-%d %H:%M")
+        hash = meta[:hash]
+        size = meta[:size]
+
+        case type
+        when :directory
+            hash = '-'
+        end
+
+            
+        puts "%s %-32s %8d %s %s" % [ type.to_s[0], hash, size, time, file ]
+    }
 else
     $stderr.puts "Unknown command"
     exit(1)
