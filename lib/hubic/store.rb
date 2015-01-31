@@ -28,7 +28,7 @@ class Store
                    ( begin 
                          YAML.load_file(@file)
                      rescue Errno::ENOENT
-                     end || {} ).merge(@user => @data).to_yaml
+                     end || {} ).merge(@user => @data)
                else
                    @data
                end
