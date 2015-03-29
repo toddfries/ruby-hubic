@@ -163,7 +163,7 @@ class Hubic
         r = @conn.get '/oauth/auth', {
             :client_id     => @client_id,
             :response_type => 'code',
-            :redirect_uri  => 'http://localhost/',
+            :redirect_uri  => @redirect_uri,
             :scope         => 'account.r,usage.r,links.drw,credentials.r',
             :state         => 'random'
         }
@@ -210,7 +210,7 @@ class Hubic
     def get_access_token(code)
         r = @conn.post '/oauth/token', {
             :code          => code,
-            :redirect_uri  => 'http://localhost/',
+            :redirect_uri  => @redirect_uri,
             :grant_type    => 'authorization_code',
             :client_id     => @client_id,
             :client_secret => @client_secret
