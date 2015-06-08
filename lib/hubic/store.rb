@@ -19,7 +19,7 @@ class Store
                        end)
     end
     
-    def self.[](user)
+    def self.new_file(user)
         self.new(file = FILE, user)
     end
     

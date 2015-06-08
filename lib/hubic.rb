@@ -58,7 +58,7 @@ class Hubic
     # @param password_requester
     # @return [Hubic] an Hubic handler
     def self.for_user(user, password=nil, 
-                      store: Store[user], force: false, &password_requester)
+                      store: Store.new_file(user), force: false, &password_requester)
         h = Hubic.new(@@client_id, @@client_secret, @@redirect_uri)
         h.for_user(user, password, 
                    store: store, force: force, &password_requester)
@@ -93,7 +93,7 @@ class Hubic
     # @param force [true, false]
     # @param password_requester
     def for_user(user, password=nil,
-                 store: Store[user], force: false, &password_requester)
+                 store: Store.new_file(user), force: false, &password_requester)
         @store         = store
         @refresh_token = @store['refresh_token'] if @store && !force
 
