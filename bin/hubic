@@ -182,10 +182,10 @@ when 'list', 'ls'
             
         puts "%s %-32s %8d %s %s" % [ type.to_s[0], hash, size, time, file ]
     }
-else
-    $stderr.puts "Unknown command"
-    exit(1)
 when 'delete'
     obj = ARGV[0]
     puts Hubic.for_user(user).delete(obj)
+else
+    $stderr.puts "Unknown command"
+    exit(1)
 end

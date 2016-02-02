@@ -82,7 +82,7 @@ class Hubic
 	    raise Error::NotFound, "the object does not exists"
 	else
 	    delete_object(obj)
-	fi
+	end
     end
 
     def md5(obj)
