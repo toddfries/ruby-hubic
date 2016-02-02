@@ -5,6 +5,7 @@ require 'optparse'
 require 'hubic'
 require 'highline'
 require 'ostruct'
+require 'mime/types'
 
 
 HUBIC_CLIENT_CFG = "#{ENV['HOME']}/.hubic-client"
@@ -18,6 +19,7 @@ error_proc = lambda do |msg|
   exit 1
 end
 
+verb = 0
 
 options = OptionParser.new do |opts|
     opts.banner = "Hubic: access your data"
@@ -27,13 +29,14 @@ options = OptionParser.new do |opts|
     opts.separator "  HUBIC_USER=foo@bar.com"
     opts.separator "  hubic client   config"
     opts.separator "  hubic auth"
-    opts.separator "  hubic mkdir [-p] documents"
-    opts.separator "  hubic upload     local-file.txt documents/cloud-file.txt"
-    opts.separator "  hubic md5        documents/cloud-file.txt"
-    opts.separator "  hubic download   documents/cloud-file.txt"
-    opts.separator "  hubic delete     documents/cloud-file.txt"
-    opts.separator "  hubic list [-al] documents"
-    opts.separator "  hubic ls   [-al] documents"
+    opts.separator "  hubic mkdir [-p] cloud"
+    opts.separator "  hubic upload     local-file.txt cloud/cloud-file.txt"
+    opts.separator "  hubic md5        cloud/cloud-file.txt"
+    opts.separator "  hubic download   cloud/cloud-file.txt"
+    opts.separator "  hubic delete     cloud/cloud-file.txt"
+    opts.separator "  hubic list [-al] cloud"
+    opts.separator "  hubic ls   [-al] cloud"
+    opts.separator "  hubic du         cloud"
     opts.separator ""
     opts.separator "Options:"
     
@@ -55,6 +58,7 @@ options = OptionParser.new do |opts|
     opts.on("-V", "--verbose", "Be verbose about action performed") do
         require 'logger'
         loggers << Logger.new($stdout)
+        verb += 1
     end
   
     opts.on_tail("-v", "--version", "Show version") do
@@ -164,12 +168,11 @@ when 'list', 'ls'
 
             next if !copts.all && file[0] == ?. 
 
-            type = case meta[:type]
-                   when 'application/directory' then :directory
-                   when 'application/octet-stream' then :file
-                   else                              :unknown
-                        puts "Unknown meta type %s" % [ meta[:type] ]
-                   end
+	    if meta[:type] != 'application/directory'
+                type = :file
+            else
+                type = :directory
+            end
             time = meta[:lastmod].strftime("%Y-%m-%d %H:%M")
             hash = meta[:hash]
             size = meta[:size]
@@ -193,6 +196,24 @@ when 'list', 'ls'
                 puts "%s%s" % [ file, astr ]
             end
         }
+    }
+when 'du'
+    ARGV.each {|obj|
+        total_size = 0
+        Hubic.for_user(user).list(obj).each {|file, meta|
+            file = file.split('/')[-1] if obj
+	    if meta[:type] != 'application/directory'
+                type = :file
+            else
+                type = :directory
+            end
+            size = meta[:size]
+            total_size += size
+            if verb > 0
+                puts "+%8d = %8d %s" % [ size, total_size, file ]
+            end
+        }
+        puts "%8d %s" % [ total_size, obj ]
     }
 when 'delete'
     obj = ARGV[0]
