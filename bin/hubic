@@ -134,14 +134,17 @@ when 'upload'   # local / hubic
     obj = ARGV[1]
     Hubic.for_user(user).upload(src, obj)
 when 'mkdir'
-    obj = ARGV[0]
-    Hubic.for_user(user).mkdir(obj, parents: false)
+    ARGV.each {|obj|
+        Hubic.for_user(user).mkdir(obj, parents: false)
+    }
 when 'mkdir_p'
-    obj = ARGV[0]
-    Hubic.for_user(user).mkdir(obj, parents: true)
+    ARGV.each {|obj|
+        Hubic.for_user(user).mkdir(obj, parents: true)
+    }
 when 'md5'
-    obj = ARGV[0]
-    puts Hubic.for_user(user).md5(obj)
+    ARGV.each {|obj|
+        puts Hubic.for_user(user).md5(obj)
+    }
 when 'list', 'ls'
 
     copts = OpenStruct.new
@@ -159,35 +162,38 @@ when 'list', 'ls'
     end
 
     
-    obj = ARGV[0]
+    ARGV.each {|obj|
     
-    Hubic.for_user(user).list(obj).each {|file, meta|
-        file = file.split('/')[-1] if obj
+        Hubic.for_user(user).list(obj).each {|file, meta|
+            file = file.split('/')[-1] if obj
 
-        next if !copts.all && file[0] == ?. 
+            next if !copts.all && file[0] == ?. 
 
-        type = case meta[:type]
-               when 'application/directory' then :directory
-               else                              :file
-               end
-        time = meta[:lastmod].strftime("%Y-%m-%d %H:%M")
-        hash = meta[:hash]
-        size = meta[:size]
+            type = case meta[:type]
+                   when 'application/directory' then :directory
+                   else                              :file
+                   end
+            time = meta[:lastmod].strftime("%Y-%m-%d %H:%M")
+            hash = meta[:hash]
+            size = meta[:size]
 
-        case type
-        when :directory
-            hash = '-'
-        end
+            case type
+            when :directory
+                hash = '-'
+            end
 
             
-        puts "%s %-32s %8d %s %s" % [ type.to_s[0], hash, size, time, file ]
+            puts "%s %-32s %8d %s %s" % [ type.to_s[0], hash, size, time, file ]
+        }
     }
 when 'delete'
     obj = ARGV[0]
-    if path.nil?
+    if obj.nil?
         raise "You must provide the path as the first argument"
     end
-    puts Hubic.for_user(user).delete(obj)
+    ARGV.each {|obj|
+        Hubic.for_user(user).delete(obj)
+    }
 else
     $stderr.puts "Unknown command"
     exit(1)
