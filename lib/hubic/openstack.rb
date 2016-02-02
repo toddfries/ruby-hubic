@@ -86,6 +86,7 @@ class Hubic
                 fail "http redirect is not currently handled"
             when Net::HTTPUnauthorized
                 # TODO: Need to refresh token
+		puts "TODO: Need to refresh token here"
             else
                 fail "resource unavailable: #{uri} (#{response.class})"
             end
@@ -118,6 +119,7 @@ class Hubic
             http.use_ssl = true
             # http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
+        http.read_timeout(600)
         http.start
 
 
