@@ -135,8 +135,9 @@ def du_recurse(user, obj)
             astr = ''
         end
         tsize += size
+        # XXX proper way to conditionalize the puts based on global -V ?
         #if verb > 0
-            puts "+%10d = %10d %s%s" % [ size, tsize, "#{obj}/#{path}", astr ]
+        #   puts "+%10d = %10d %s%s" % [ size, tsize, "#{obj}/#{path}", astr ]
         #end
     }
     tsize
@@ -156,14 +157,23 @@ when 'upload'   # local / hubic
     obj = ARGV[1]
     Hubic.for_user(user).upload(src, obj)
 when 'mkdir'
+    if ARGV[0].nil?
+        raise "You must provide the path as the first argument"
+    end
     ARGV.each {|obj|
         Hubic.for_user(user).mkdir(obj, parents: false)
     }
 when 'mkdir_p'
+    if ARGV[0].nil?
+        raise "You must provide the path as the first argument"
+    end
     ARGV.each {|obj|
         Hubic.for_user(user).mkdir(obj, parents: true)
     }
 when 'md5'
+    if ARGV[0].nil?
+        raise "You must provide the path as the first argument"
+    end
     ARGV.each {|obj|
         puts Hubic.for_user(user).md5(obj)
     }
@@ -178,6 +188,10 @@ when 'list', 'ls'
             copts.all  = true
         end
     }.parse!
+
+    if ARGV[0].nil?
+        ARGV[0] = nil
+    end
     
     ARGV.each {|obj|
     
@@ -216,6 +230,11 @@ when 'list', 'ls'
         }
     }
 when 'du'
+    obj = ARGV[0]
+    if obj.nil?
+        total_size = du_recurse(user, "")
+        puts "%10d %s" % [ total_size, "/" ]
+    end
     ARGV.each {|obj|
         total_size = du_recurse(user, obj)
         puts "%10d %s" % [ total_size, obj ]
