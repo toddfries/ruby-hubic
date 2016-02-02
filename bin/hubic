@@ -126,9 +126,14 @@ end
 def du_recurse(user, obj)
     tsize = 0
     Hubic.for_user(user).list(obj).each {|path, meta|
-        path = path.split('/')[-1] if obj
+        if obj
+            path = path.split('/')[-1]
+            fullpath = "#{obj}/#{path}"
+        else
+            fullpath = path
+        end
         if meta[:type] == 'application/directory'
-            size = du_recurse(user, "#{obj}/#{path}")
+            size = du_recurse(user, fullpath)
             astr = '/'
         else
             size = meta[:size]
@@ -137,7 +142,7 @@ def du_recurse(user, obj)
         tsize += size
         # XXX proper way to conditionalize the puts based on global -V ?
         #if verb > 0
-        #   puts "+%10d = %10d %s%s" % [ size, tsize, "#{obj}/#{path}", astr ]
+        #   puts "+%10d = %10d %s%s" % [ size, tsize, fullpath, astr ]
         #end
     }
     tsize
@@ -196,7 +201,12 @@ when 'list', 'ls'
     ARGV.each {|obj|
     
         Hubic.for_user(user).list(obj).each {|file, meta|
-            file = file.split('/')[-1] if obj
+            if obj
+                file = file.split('/')[-1]
+                fullpath = "#{obj}/#{file}"
+            else
+                fullpath = file
+            end
 
             next if !copts.all && file[0] == ?. 
 
@@ -223,9 +233,9 @@ when 'list', 'ls'
 
             
             if copts.long
-                puts "%s %-32s %10d %s %s" % [ stype, hash, size, time, file ]
+                puts "%s %-32s %10d %s %s" % [ stype, hash, size, time, fullpath ]
             else
-                puts "%s%s" % [ file, astr ]
+                puts "%s%s" % [ fullpath, astr ]
             end
         }
     }
