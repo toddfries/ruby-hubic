@@ -79,9 +79,9 @@ class Hubic
     def delete(obj)
 	# Check if obj exists before deleting
 	if (meta = get_metadata(obj)).nil?
-	    raise Error::NotFound, "the object does not exists"
+            puts "delete: the object #{obj} does not exist"
 	else
-	    delete_object(obj)
+	    puts delete_object(obj)
 	end
     end
 
