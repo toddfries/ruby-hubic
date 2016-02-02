@@ -185,4 +185,7 @@ when 'list', 'ls'
 else
     $stderr.puts "Unknown command"
     exit(1)
+when 'delete'
+    obj = ARGV[0]
+    puts Hubic.for_user(user).delete(obj)
 end

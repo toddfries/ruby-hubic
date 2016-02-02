@@ -168,7 +168,7 @@ class Hubic
             :state         => 'random'
         }
 
-        # Autofill confirmation 
+        # Autofill confirmation
         params = {}
         doc = Nokogiri::HTML(r.body)
         doc.css('input').each {|i|
