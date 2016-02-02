@@ -184,6 +184,9 @@ when 'list', 'ls'
     }
 when 'delete'
     obj = ARGV[0]
+    if path.nil?
+        raise "You must provide the path as the first argument"
+    end
     puts Hubic.for_user(user).delete(obj)
 else
     $stderr.puts "Unknown command"

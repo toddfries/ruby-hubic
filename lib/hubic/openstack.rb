@@ -228,6 +228,9 @@ class Hubic
                 fail "http redirect is not currently handled"
             when Net::HTTPUnauthorized
                 # TODO: Need to refresh token
+            when Net::HTTPNotFound
+                meta = nil
+                puts "Not Found"
             else
                 fail "resource unavailable: #{uri} (#{response.class})"
             end
