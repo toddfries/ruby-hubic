@@ -76,8 +76,13 @@ class Hubic
         raise "not implemented yet"
     end
 
-    def delete(src)
-        raise "not implemented yet"
+    def delete(obj)
+	# Check if obj exists before deleting
+	if (meta = get_metadata(obj)).nil?
+	    raise Error::NotFound, "the object does not exists"
+	else
+	    delete_object(obj)
+	fi
     end
 
     def md5(obj)
