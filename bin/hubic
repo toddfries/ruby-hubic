@@ -157,11 +157,6 @@ when 'list', 'ls'
         end
     }.parse!
     
-    if copts.long
-    else
-    end
-
-    
     ARGV.each {|obj|
     
         Hubic.for_user(user).list(obj).each {|file, meta|
@@ -171,19 +166,32 @@ when 'list', 'ls'
 
             type = case meta[:type]
                    when 'application/directory' then :directory
-                   else                              :file
+                   when 'application/octet-stream' then :file
+                   else                              :unknown
+                        puts "Unknown meta type %s" % [ meta[:type] ]
                    end
             time = meta[:lastmod].strftime("%Y-%m-%d %H:%M")
             hash = meta[:hash]
             size = meta[:size]
 
+            astr = ''
             case type
             when :directory
                 hash = '-'
+                astr = '/'
+                stype = 'd'
+            when :file
+                stype = '-'
+            else
+                stype = '?'
             end
 
             
-            puts "%s %-32s %8d %s %s" % [ type.to_s[0], hash, size, time, file ]
+            if copts.long
+                puts "%s %-32s %8d %s %s" % [ stype, hash, size, time, file ]
+            else
+                puts "%s%s" % [ file, astr ]
+            end
         }
     }
 when 'delete'
