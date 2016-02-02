@@ -32,8 +32,8 @@ options = OptionParser.new do |opts|
     opts.separator "  hubic md5        documents/cloud-file.txt"
     opts.separator "  hubic download   documents/cloud-file.txt"
     opts.separator "  hubic delete     documents/cloud-file.txt"
-    opts.separator "  hubic list [-al] directory"
-    opts.separator "  hubic ls   [-al] directory"
+    opts.separator "  hubic list [-al] documents"
+    opts.separator "  hubic ls   [-al] documents"
     opts.separator ""
     opts.separator "Options:"
     
