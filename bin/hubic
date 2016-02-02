@@ -120,9 +120,27 @@ else
 end
 
 if user.nil?
-    
+    raise "User required!"
 end
 
+def du_recurse(user, obj)
+    tsize = 0
+    Hubic.for_user(user).list(obj).each {|path, meta|
+        path = path.split('/')[-1] if obj
+        if meta[:type] == 'application/directory'
+            size = du_recurse(user, "#{obj}/#{path}")
+            astr = '/'
+        else
+            size = meta[:size]
+            astr = ''
+        end
+        tsize += size
+        #if verb > 0
+            puts "+%10d = %10d %s%s" % [ size, tsize, "#{obj}/#{path}", astr ]
+        #end
+    }
+    tsize
+end
 
 case action
 when 'auth'
@@ -168,7 +186,7 @@ when 'list', 'ls'
 
             next if !copts.all && file[0] == ?. 
 
-	    if meta[:type] != 'application/directory'
+            if meta[:type] != 'application/directory'
                 type = :file
             else
                 type = :directory
@@ -191,7 +209,7 @@ when 'list', 'ls'
 
             
             if copts.long
-                puts "%s %-32s %8d %s %s" % [ stype, hash, size, time, file ]
+                puts "%s %-32s %10d %s %s" % [ stype, hash, size, time, file ]
             else
                 puts "%s%s" % [ file, astr ]
             end
@@ -199,21 +217,8 @@ when 'list', 'ls'
     }
 when 'du'
     ARGV.each {|obj|
-        total_size = 0
-        Hubic.for_user(user).list(obj).each {|file, meta|
-            file = file.split('/')[-1] if obj
-	    if meta[:type] != 'application/directory'
-                type = :file
-            else
-                type = :directory
-            end
-            size = meta[:size]
-            total_size += size
-            if verb > 0
-                puts "+%8d = %8d %s" % [ size, total_size, file ]
-            end
-        }
-        puts "%8d %s" % [ total_size, obj ]
+        total_size = du_recurse(user, obj)
+        puts "%10d %s" % [ total_size, obj ]
     }
 when 'delete'
     obj = ARGV[0]
