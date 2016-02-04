@@ -76,12 +76,18 @@ class Hubic
         end
         http.start
 
+        retrycount = 0
+        maxretry = 3
+        doretry = 0
+        loop do
         http.request_head(uri.request_uri, hdrs) {|response|
             case response
             when Net::HTTPSuccess
                 meta = parse_response_for_meta(response)
             when Net::HTTPNotFound
                 meta = nil
+            when Net::HTTPRequestTimeOut
+                doretry = 1
             when Net::HTTPRedirection
                 fail "http redirect is not currently handled"
             when Net::HTTPUnauthorized
@@ -90,7 +96,10 @@ class Hubic
             else
                 fail "resource unavailable: #{uri} (#{response.class})"
             end
-        }            
+        }
+	retrycount += 1
+        break unless retrycount < maxretry && doretry == 1
+        end
 
         meta
     ensure
@@ -122,7 +131,10 @@ class Hubic
         http.read_timeout(600)
         http.start
 
-
+        retrycount = 0
+        maxretry = 3
+        doretry = 0
+        loop do
         http.request_get(uri.request_uri, hdrs) {|response|
             case response
             when Net::HTTPSuccess
@@ -130,28 +142,33 @@ class Hubic
                 fail "http redirect is not currently handled"
             when Net::HTTPUnauthorized
                 # TODO: Need to refresh token
+            when Net::HTTPRequestTimeOut
+                doretry = 1
             else
                 fail "resource unavailable: #{uri} (#{response.class})"
             end
 
             meta    = parse_response_for_meta(response)
-            
+
             if block
                 block.call(meta)
             end
-            
+
             response.read_body {|segment|
                 if    IO   === dst            then dst.write(segment)
                 elsif Proc === dst            then dst.call(segment)
                 elsif dst.respond_to?(:write) then dst.write(segment)
                 elsif dst.respond_to?(:call ) then dst.call(segment)
                 end
-                
+
                 if block
                     block.call(segment)
                 end
             }
-        }            
+        }
+	retrycount += 1
+        break unless retrycount < maxretry && doretry == 1
+        end
         if block
             block.call(:done)
         end
@@ -186,6 +203,10 @@ class Hubic
 
         request = Net::HTTP::Put.new(uri.request_uri, hdrs)
         request.body_stream = io
+        retrycount = 0
+        maxretry = 3
+        doretry = 0
+        loop do
         http.request(request) {|response|
             case response
             when Net::HTTPSuccess
@@ -193,12 +214,17 @@ class Hubic
                 fail "http redirect is not currently handled"
             when Net::HTTPUnauthorized
                 # TODO: Need to refresh token
+            when Net::HTTPRequestTimeOut
+                doretry = 1
             else
                 fail "resource unavailable: #{uri} (#{response.class})"
             end
 
             puts response.inspect
         }
+	retrycount += 1
+        break unless retrycount < maxretry && doretry == 1
+        end
         if block
             block.call(:done)
         end
@@ -222,6 +248,10 @@ class Hubic
         http.start
 
         request = Net::HTTP::Delete.new(uri.request_uri, hdrs)
+        retrycount = 0
+        maxretry = 3
+        doretry = 0
+        loop do
         http.request(request) {|response|
             case response
             when Net::HTTPNoContent
@@ -230,6 +260,8 @@ class Hubic
                 fail "http redirect is not currently handled"
             when Net::HTTPUnauthorized
                 # TODO: Need to refresh token
+            when Net::HTTPRequestTimeOut
+                doretry = 1
             when Net::HTTPNotFound
                 meta = nil
                 puts "Not Found"
@@ -239,6 +271,9 @@ class Hubic
 
             puts response.inspect
         }
+	retrycount += 1
+        break unless retrycount < maxretry && doretry == 1
+        end
         if block
             block.call(:done)
         end
@@ -250,23 +285,26 @@ class Hubic
     #
     # @param container [String] the name of the container.
     # @return [Array] the list of objects (as a Hash)
-    def objects(container = @default_container, 
+    def objects(container = @default_container,
                 path: nil, limit: nil, gt: nil, lt: nil)
         path = path[1..-1] if path && path[0] == ?/
-        p    = { path: path, limit: limit, marker: gt, end_marker: lt 
-               }.delete_if {|k,v| v.nil? }            
-        j,   = api_openstack(:get, container, p)
+        p    = { path: path, limit: limit, marker: gt, end_marker: lt
+               }.delete_if {|k,v| v.nil? }
+        j,h   = api_openstack(:get, container, p)
         Hash[j.map {|o| [ o['name'], {
-                              :hash    => o['hash'], 
+                              :hash    => o['hash'],
                               :lastmod => Time.parse(o['last_modified']),
                               :size    => o['bytes'].to_i,
-                              :type    => o['content_type']
+                              :type    => o['content_type'],
+	                      :contuse => h['x-container-bytes-used'],
+                              :contoct => h['x-container-object-coun'],
+                              :storpol => h['x-storage-policy'],
                           } ] } ]
     end
 
     def containers
         j, = api_openstack(:get, '/')
-        Hash[j.map {|c| [ c['name'], { :size  => c['bytes'].to_i, 
+        Hash[j.map {|c| [ c['name'], { :size  => c['bytes'].to_i,
                                        :count => c['count'].to_i } ] } ]
     end
 
@@ -327,12 +365,12 @@ class Hubic
         openstack_setup_refresh # TODO: no need to refresh just get the endpoint
 
         c, p = case obj
-               when String 
+               when String
                    [ @default_container, obj ]
-               when Hash 
-                   [ obj[:name] || obj[:path], 
+               when Hash
+                   [ obj[:name] || obj[:path],
                      (obj[:container] || @default_container).to_s ]
-               when Array  
+               when Array
                    case obj.length
                    when 1 then [ @default_container, obj ]
                    when 2 then Symbol === obj[1] ? [ obj[1], obj[0] ] : obj
