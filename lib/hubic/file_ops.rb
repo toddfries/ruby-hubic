@@ -65,7 +65,22 @@ class Hubic
             type = (MIME::Types.of(src).first ||
                     MIME::Types[TYPE_OCTET_STREAM].first).content_type
         end
-        put_object(obj, src, type, &block)
+        if (meta = get_metadata(obj)).nil?
+        then
+            #puts "no file exists of this name, good deal!"
+        elsif meta[:type] != TYPE_DIRECTORY
+            puts "over-writing existing file #{obj} of #{meta[:size]}bytes"
+        else
+            srcbn = File.basename(src)
+            newobj = "#{obj}/#{srcbn}"
+            puts "#{obj} is a dir, changing destination to #{newobj}"
+            obj = newobj
+        end
+        begin
+            put_object(obj, src, type, &block)
+        rescue SocketError
+            puts "Sorry, a socket error occurred, can we gracfully fix this?"
+        end
     end
 
     def copy(src, dst)
@@ -93,6 +108,10 @@ class Hubic
 
     def list(path = '/', container = @default_container)
         objects(container, path: path)
+    end
+
+    def stat(obj)
+        get_metadata(obj)
     end
 
 end
