@@ -132,7 +132,7 @@ def du_recurse(user, obj)
         else
             fullpath = path
         end
-        if meta[:type] == 'application/directory'
+        if meta[:type] == Hubic.TYPE_DIRECTORY
             size = du_recurse(user, fullpath)
             astr = '/'
         else
@@ -157,10 +157,51 @@ when 'download' # hubic / local
     obj = ARGV[0]
     dst = ARGV[1] || File.basename(obj)
     Hubic.for_user(user).download(obj, dst)
-when 'upload'   # local / hubic
-    src = ARGV[0]
-    obj = ARGV[1]
-    Hubic.for_user(user).upload(src, obj)
+when 'upload'   # local -> hubic
+    if ARGV[1].nil?
+        raise "Need minimum of two arguments for upload, srclist and dst"
+    end
+    dcount=0
+    mydir=""
+    ARGV.each{|path|
+        meta = Hubic.for_user(user).stat(path)
+        if meta[:type] == Hubic.TYPE_DIRECTORY
+            dcount += 1
+            mydir = path
+            break unless dcount < 2
+        else
+            if dcount > 0
+              raise "specifing files after destination dir is not going to fly"
+            end
+        end
+    }
+    if dcount < 1
+        # foo0.jpg cloud/testdir/foo0.jpg
+        src = ARGV[0]
+        dst = ARGV[1]
+        Hubic.for_user(user).upload(src, dst)
+    elsif dcount > 1
+        raise "cannot specify more than one distination dir"
+    else
+        # foo0.jpg foo1.jpg foo2.jpg ... cloud/testdir
+        ARGV.each{|path|
+            meta = stat(path)
+            if meta[:type] == 'application/directory'
+                break
+            end
+            Hubic.for_user(user).upload(path, mydir)
+        }
+    end
+when 'hcp'      # hubic copy ( 'hcp hubic://cloud/foo.jpg foo.jpg' )
+    if ARGV[1].nil?
+        raise "You must provide two args for hcp"
+    end
+    puts "to be implemented\n"
+    # if ARGV[0] =~ hubic:// && ARGV[1] =~ localfilename
+    #    Hubic.for_user(user).download(ARGV[0], ARGV[1])
+    # else if ARGV[1] =~ hubic:// && ARGV[0] =~ localfilename
+    #    Hubic.for_user(user).upload(ARGV[0], ARGV[1])
+    # fi
 when 'mkdir'
     if ARGV[0].nil?
         raise "You must provide the path as the first argument"
@@ -199,8 +240,12 @@ when 'list', 'ls'
     end
     
     ARGV.each {|obj|
-    
-        Hubic.for_user(user).list(obj).each {|file, meta|
+        if container.nil? 
+            entries = Hubic.for_user(user).list(obj)
+        else
+            entries = Hubic.for_user(user).list(obj, container)
+        end
+        entries.each {|file, meta|
             if obj
                 file = file.split('/')[-1]
                 fullpath = "#{obj}/#{file}"
@@ -256,6 +301,10 @@ when 'delete'
     end
     ARGV.each {|obj|
         Hubic.for_user(user).delete(obj)
+    }
+when 'containers'
+    Hubic.for_user(user).containers.each {|name, meta|
+       puts "name #{name} = #{meta}"
     }
 else
     $stderr.puts "Unknown command"
