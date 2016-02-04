@@ -1,0 +1,6 @@
+- handle specifying container to all ops not just ls
+- mkdir: add -p and nuke mkdir_p
+- complete 'move'
+- flesh 'containers'
+- handle more errors and exceptions better
+- finish the token refresh bits in lib/hubic/*.rb files
