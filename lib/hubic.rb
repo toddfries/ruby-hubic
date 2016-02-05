@@ -53,14 +53,14 @@ class Hubic
     # Create a Hubic handler
     # @param user [String]
     # @param password [String]
-    # @param store 
+    # @param store
     # @param force [true, false]
     # @param password_requester
     # @return [Hubic] an Hubic handler
-    def self.for_user(user, password=nil, 
+    def self.for_user(user, password=nil,
                       store: Store.new_file(user), force: false, &password_requester)
         h = Hubic.new(@@client_id, @@client_secret, @@redirect_uri)
-        h.for_user(user, password, 
+        h.for_user(user, password,
                    store: store, force: force, &password_requester)
         h
     end
@@ -89,7 +89,7 @@ class Hubic
     # Initialize the Hubic handler to perform operations on behalf of the user
     # @param user [String]
     # @param password [String]
-    # @param store 
+    # @param store
     # @param force [true, false]
     # @param password_requester
     def for_user(user, password=nil,
@@ -136,7 +136,7 @@ class Hubic
     end
 
 
-    
+
     # Make a call to the Hubic API
     # @param method [:get, :post, :delete]
     # @param path
@@ -180,7 +180,7 @@ class Hubic
                 params[:user_pwd] = password
                 next
             end
-            
+
             case i[:type]
             when 'checkbox', 'hidden', 'text'
                 (params[i[:name]] ||= []) << i[:value] if i[:name]
@@ -199,7 +199,7 @@ class Hubic
             q['code']
         when 400, 401, 500
             raise Error::Auth, "#{q['error']} #{q['error_description']}"
-        else 
+        else
             raise Error::Auth, "unhandled response code (#{r.status})"
         end
     end
@@ -224,7 +224,7 @@ class Hubic
             }
         when 400, 401, 500
             raise Error::Auth, "#{j['error']} #{j['error_description']}"
-        else 
+        else
             raise Error::Auth, "unhandled response code (#{r.status})"
         end
     end
@@ -233,14 +233,29 @@ class Hubic
     # @return Hash
     def refresh_access_token
         if @refresh_token.nil?
-            raise Error, "refresh_token was not previously acquiered" 
+            raise Error, "refresh_token was not previously acquiered"
         end
+        r = nil
+        doretry = 0
+        retrycount = 0
+        maxretry = 3
+        loop do
+        begin
         r = @conn.post '/oauth/token', {
             :refresh_token => @refresh_token,
             :grant_type    => 'refresh_token',
             :client_id     => @client_id,
             :client_secret => @client_secret
         }
+        rescue Faraday::TimeoutError
+            puts "Handling Faraday::TimeoutError"
+            doretry = 1
+        end
+        retrycount += 1
+        break unless retrycount > maxretry && doretry > 0
+        end
+
+
         j = JSON.parse(r.body)
         case r.status
         when 200
@@ -249,7 +264,7 @@ class Hubic
             }
         when 400, 401, 500
             raise Error::Auth, "#{j['error']} #{j['error_description']}"
-        else 
+        else
             raise Error::Auth, "unhandled response code (#{r.status})"
         end
     end
