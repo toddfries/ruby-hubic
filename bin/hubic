@@ -161,13 +161,11 @@ when 'upload'   # local -> hubic
     if ARGV[1].nil?
         raise "Need minimum of two arguments for upload, srclist and dst"
     end
-    puts "upload(#{ARGV[0]},#{ARGV[1]})"
     dcount=0
     mydir=""
     myfiles = [ ]
     myfcount=0
     ARGV.each{|path|
-        puts "upload: ARGV.each 1: #{path}"
         meta = Hubic.for_user(user).stat(path)
         if meta.nil?
             myfiles[myfcount]=path
@@ -186,7 +184,6 @@ when 'upload'   # local -> hubic
             end
         end
     }
-    puts "upload: 1 dcount=#{dcount} verb=#{verb}"
     if dcount < 1
         # foo0.jpg cloud/testdir/foo0.jpg
         src = ARGV[0]
@@ -208,32 +205,47 @@ when 'hcp'      # hubic copy ( 'hcp hubic://cloud/foo.jpg foo.jpg' )
     if ARGV[1].nil?
         raise "You must provide two args for hcp"
     end
-    puts "to be implemented\n"
+    puts "to be implemented"
     # if ARGV[0] =~ hubic:// && ARGV[1] =~ localfilename
     #    Hubic.for_user(user).download(ARGV[0], ARGV[1])
     # else if ARGV[1] =~ hubic:// && ARGV[0] =~ localfilename
     #    Hubic.for_user(user).upload(ARGV[0], ARGV[1])
     # fi
 when 'mkdir'
+    copts = OpenStruct.new
+    copts.parent = false
+    OptionParser.new {|opts|
+        opts.on("-p", "parent") do  |v|
+            copts.parent = true
+        end
+    }.parse!
+
     if ARGV[0].nil?
-        raise "You must provide the path as the first argument"
-    end
+        warn "You must provide the path as the first argument"
+    else
     ARGV.each {|obj|
-        Hubic.for_user(user).mkdir(obj, parents: false)
+        Hubic.for_user(user).mkdir(obj, parents: copts.parent)
     }
-when 'mkdir_p'
-    if ARGV[0].nil?
-        raise "You must provide the path as the first argument"
     end
-    ARGV.each {|obj|
-        Hubic.for_user(user).mkdir(obj, parents: true)
-    }
 when 'md5'
+    copts = OpenStruct.new
+    copts.quiet = false
+    OptionParser.new {|opts|
+        opts.on("-q", "quiet") do  |v|
+            copts.quiet = true
+        end
+    }.parse!
+
     if ARGV[0].nil?
         raise "You must provide the path as the first argument"
     end
     ARGV.each {|obj|
-        puts Hubic.for_user(user).md5(obj)
+        hash = Hubic.for_user(user).md5(obj)
+        if copts.quiet == true
+            puts hash
+        else
+            puts "MD5 (%s) = %s" % [ obj, hash ]
+        end
     }
 when 'list', 'ls'
 
