@@ -90,10 +90,32 @@ class Hubic
 
     def copy(src, dst)
         raise "not implemented yet"
+        # if ! stat(src)
+        #    return
+        # end
+        # make way
+        # delete_object(dst)
+
+        # copy_object(src,dst)
+        # if src.type == TYPE_DIRECTORY
+        #    list(src).each{ |path,meta|
+        #        pbn = path.basename
+        #        copy_object(path, "#{dst}/#{pbn}")
+        #        if meta[:type] == TYPE_DIRECTORY
+        #            recurse...
+        #        end
+        #    }
+        # end
     end
     
     def move(src, dst)
         raise "not implemented yet"
+        # if ! stat(src)
+        #    return
+        # end
+        # if copy(src, dst)
+        #     delete_object(src)
+        # end
     end
 
     def delete(obj)
