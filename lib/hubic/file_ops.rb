@@ -60,21 +60,26 @@ class Hubic
     end
 
     def upload(src, obj, type=TYPE_OCTET_STREAM, &block)
+        puts "upload(#{src},#{obj},#{type}): start"
         case src
         when String, Pathname
             type = (MIME::Types.of(src).first ||
                     MIME::Types[TYPE_OCTET_STREAM].first).content_type
         end
-        if (meta = get_metadata(obj)).nil?
+        meta = get_metadata(obj)
+        if meta.nil?
         then
-            #puts "no file exists of this name, good deal!"
-        elsif meta[:type] != TYPE_DIRECTORY
-            puts "over-writing existing file #{obj} of #{meta[:size]}bytes"
-        else
+            puts "no file exists of this name, good deal!"
+        elsif meta[:type] == TYPE_DIRECTORY
             srcbn = File.basename(src)
             newobj = "#{obj}/#{srcbn}"
             puts "#{obj} is a dir, changing destination to #{newobj}"
             obj = newobj
+	    upload(src, obj, type)
+            return
+        else
+            mysize = meta[:size]
+            puts "over-writing existing file #{obj} of #{mysize} bytes (#{meta})"
         end
         begin
             put_object(obj, src, type, &block)
