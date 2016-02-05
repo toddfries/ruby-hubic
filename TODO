@@ -4,3 +4,6 @@
 - flesh 'containers'
 - handle more errors and exceptions better
 - finish the token refresh bits in lib/hubic/*.rb files
+- when uploading files, where does the fugly
+  #<Net::HTTPCreated 201 Created readbody=false>
+  come from?  Can we hide it or make a better output?
