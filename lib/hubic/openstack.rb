@@ -70,12 +70,7 @@ class Hubic
         hdrs = {}
         hdrs['X-Auth-Token'] = @os[:token]
 
-        http = Net::HTTP.new(uri.host, uri.port)
-        if uri.scheme == 'https'
-            http.use_ssl = true
-            # http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-        end
-        http.start
+        http = init_http( uri )
 
         retrycount = 0
         maxretry = 3
@@ -126,13 +121,7 @@ class Hubic
             hdrs['Range'] = sprintf("bytes=%d-%d", offset, offset + size - 1)
         end
 
-        http = Net::HTTP.new(uri.host, uri.port)
-        if uri.scheme == 'https'
-            http.use_ssl = true
-            # http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-        end
-        #http.read_timeout(600)
-        http.start
+        http = init_http(uri)
 
         retrycount = 0
         maxretry = 3
@@ -182,6 +171,46 @@ class Hubic
         http.finish unless http.nil?
     end
 
+    def copy_object(obj, dst=nil)
+        container, path, uri = normalize_object(obj)
+
+        meta = {}
+
+        hdrs = {}
+        hdrs['X-Auth-Token'] = @os[:token]
+
+        http = init_http(uri)
+
+        retrycount = 0
+        maxretry = 3
+        doretry = 0
+        loop do
+        http.copy(uri.request_uri, hdrs) {|response|
+            case response
+            when Net::HTTPSuccess
+            when Net::HTTPRedirection
+                location = response['location']
+                fail "redirected to #{location}, not yet handled"
+            when Net::HTTPUnauthorized
+                # TODO: Need to refresh token
+            when Net::HTTPRequestTimeOut
+                doretry = 1
+            else
+                fail "resource unavailable: #{uri} (#{response.class} = #{response})"
+            end
+
+            meta    = parse_response_for_meta(response)
+
+        }
+        retrycount += 1
+        break unless retrycount < maxretry && doretry == 1
+        end
+
+        meta
+    ensure
+        http.finish unless http.nil?
+    end
+
     def put_object(obj, src, type = TYPE_OCTET_STREAM, &block)
         container, path, uri = normalize_object(obj)
         case src
@@ -198,12 +227,7 @@ class Hubic
         hdrs['Transfer-Encoding'] = 'chunked'
         hdrs['Content-Type'     ] = type
 
-        http = Net::HTTP.new(uri.host, uri.port)
-        if uri.scheme == 'https'
-            http.use_ssl = true
-            # http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-        end
-        http.start
+        http = init_http(uri)
 
         request = Net::HTTP::Put.new(uri.request_uri, hdrs)
         request.body_stream = io
@@ -244,12 +268,7 @@ class Hubic
         hdrs = {}
         hdrs['X-Auth-Token'     ] = @os[:token]
 
-        http = Net::HTTP.new(uri.host, uri.port)
-        if uri.scheme == 'https'
-            http.use_ssl = true
-            # http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-        end
-        http.start
+        http = init_http(uri)
 
         request = Net::HTTP::Delete.new(uri.request_uri, hdrs)
         retrycount = 0
@@ -388,6 +407,17 @@ class Hubic
         c = c.to_s
         p = p[1..-1] if p[0] == ?/
         [ c, p, URI("#{@os[:endpoint]}/#{c}/#{p}") ]
+    end
+
+    def init_http(uri)
+        h = Net::HTTP.new(uri.host, uri.port)
+        if uri.scheme == 'https'
+            h.use_ssl = true
+            # h.verify_mode = OpenSSL::SSL::VERIFY_NONE
+        end
+        #h.read_timeout(600)
+        h.start
+        h
     end
 
 end
