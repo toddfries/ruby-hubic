@@ -55,6 +55,7 @@ class Hubic
     def parse_response_for_meta(response)
         { :lastmod => (Time.parse(response['last-modified']) rescue nil),
           :length  => response.content_length,
+          :size    => response.content_length.to_i,
           :type    => response['content-type'],
           :etag    => response['etag']
         }
@@ -79,6 +80,7 @@ class Hubic
         retrycount = 0
         maxretry = 3
         doretry = 0
+        newlocation = nil
         loop do
         http.request_head(uri.request_uri, hdrs) {|response|
             case response
@@ -89,15 +91,16 @@ class Hubic
             when Net::HTTPRequestTimeOut
                 doretry = 1
             when Net::HTTPRedirection
-                fail "http redirect is not currently handled"
+                location = response['location']
+                fail "redirected to #{location}, not yet handled"
             when Net::HTTPUnauthorized
                 # TODO: Need to refresh token
-		puts "TODO: Need to refresh token here"
+                puts "TODO: Need to refresh token here"
             else
-                fail "resource unavailable: #{uri} (#{response.class})"
+                fail "resource unavailable: #{uri} (#{response.class} = #{response})"
             end
         }
-	retrycount += 1
+        retrycount += 1
         break unless retrycount < maxretry && doretry == 1
         end
 
@@ -128,7 +131,7 @@ class Hubic
             http.use_ssl = true
             # http.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
-        http.read_timeout(600)
+        #http.read_timeout(600)
         http.start
 
         retrycount = 0
@@ -139,13 +142,14 @@ class Hubic
             case response
             when Net::HTTPSuccess
             when Net::HTTPRedirection
-                fail "http redirect is not currently handled"
+                location = response['location']
+                fail "redirected to #{location}, not yet handled"
             when Net::HTTPUnauthorized
                 # TODO: Need to refresh token
             when Net::HTTPRequestTimeOut
                 doretry = 1
             else
-                fail "resource unavailable: #{uri} (#{response.class})"
+                fail "resource unavailable: #{uri} (#{response.class} = #{response})"
             end
 
             meta    = parse_response_for_meta(response)
@@ -166,7 +170,7 @@ class Hubic
                 end
             }
         }
-	retrycount += 1
+        retrycount += 1
         break unless retrycount < maxretry && doretry == 1
         end
         if block
@@ -211,18 +215,19 @@ class Hubic
             case response
             when Net::HTTPSuccess
             when Net::HTTPRedirection
-                fail "http redirect is not currently handled"
+                location = response['location']
+                fail "redirected to #{location}, not yet handled"
             when Net::HTTPUnauthorized
                 # TODO: Need to refresh token
             when Net::HTTPRequestTimeOut
                 doretry = 1
             else
-                fail "resource unavailable: #{uri} (#{response.class})"
+                fail "resource unavailable: #{uri} (#{response.class} = #{response})"
             end
 
             puts response.inspect
         }
-	retrycount += 1
+        retrycount += 1
         break unless retrycount < maxretry && doretry == 1
         end
         if block
@@ -232,7 +237,6 @@ class Hubic
         io.close unless io.nil?
         http.finish unless http.nil?
     end
-
 
     def delete_object(obj, &block)
         container, path, uri = normalize_object(obj)
@@ -257,7 +261,8 @@ class Hubic
             when Net::HTTPNoContent
             when Net::HTTPSuccess
             when Net::HTTPRedirection
-                fail "http redirect is not currently handled"
+                location = response['location']
+                fail "redirected to #{location}, not yet handled"
             when Net::HTTPUnauthorized
                 # TODO: Need to refresh token
             when Net::HTTPRequestTimeOut
@@ -266,12 +271,12 @@ class Hubic
                 meta = nil
                 puts "Not Found"
             else
-                fail "resource unavailable: #{uri} (#{response.class})"
+                fail "resource unavailable: #{uri} (#{response.class} = #{response})"
             end
 
             puts response.inspect
         }
-	retrycount += 1
+        retrycount += 1
         break unless retrycount < maxretry && doretry == 1
         end
         if block
@@ -296,7 +301,7 @@ class Hubic
                               :lastmod => Time.parse(o['last_modified']),
                               :size    => o['bytes'].to_i,
                               :type    => o['content_type'],
-	                      :contuse => h['x-container-bytes-used'],
+                              :contuse => h['x-container-bytes-used'],
                               :contoct => h['x-container-object-coun'],
                               :storpol => h['x-storage-policy'],
                           } ] } ]
@@ -339,6 +344,7 @@ class Hubic
         return unless force || @os.nil? || @os[:expires] <= Time.now
 
         data     = self.credentials
+        return if data.nil?
         endpoint = data['endpoint']
         token    = data['token']
         expires  = Time.parse(data['expires'])
