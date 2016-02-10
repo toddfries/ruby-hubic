@@ -340,6 +340,14 @@ class Hubic
         @default_container = name
     end
 
+    def get_var(var)
+        if var == 'default_container'
+            @default_container
+        else
+            nil
+        end
+    end
+
     def api_openstack(method, path, params=nil)
         openstack_setup_refresh
 

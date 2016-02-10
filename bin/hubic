@@ -123,17 +123,22 @@ if user.nil?
     raise "User required!"
 end
 
-def du_recurse(user, obj)
+def du_recurse(user, patharg, container)
     tsize = 0
-    Hubic.for_user(user).list(obj).each {|path, meta|
-        if obj
+    if container.nil?
+        entries = Hubic.for_user(user).list(patharg)
+    else
+        entries = Hubic.for_user(user).list(patharg, container)
+    end
+    entries.each {|path, meta|
+        if patharg
             path = path.split('/')[-1]
-            fullpath = "#{obj}/#{path}"
+            fullpath = "#{patharg}/#{path}"
         else
             fullpath = path
         end
-        if meta[:type] == Hubic.TYPE_DIRECTORY
-            size = du_recurse(user, fullpath)
+        if meta[:type] == 'application/directory'
+            size = du_recurse(user, fullpath, container)
             astr = '/'
         else
             size = meta[:size]
@@ -239,7 +244,10 @@ when 'md5'
     if ARGV[0].nil?
         raise "You must provide the path as the first argument"
     end
-    ARGV.each {|obj|
+    ARGV.each {|path|
+        obj[:name] = path
+        obj[:container] = container
+
         hash = Hubic.for_user(user).md5(obj)
         if copts.quiet == true
             puts hash
@@ -263,16 +271,16 @@ when 'list', 'ls'
         ARGV[0] = nil
     end
     
-    ARGV.each {|obj|
-        if container.nil? 
-            entries = Hubic.for_user(user).list(obj)
+    ARGV.each {|path|
+        if container.nil?
+            entries = Hubic.for_user(user).list(path)
         else
-            entries = Hubic.for_user(user).list(obj, container)
+            entries = Hubic.for_user(user).list(path, container)
         end
         entries.each {|file, meta|
-            if ! obj.nil?
+            if ! path.nil?
                 file = file.split('/')[-1]
-                fullpath = "#{obj}/#{file}"
+                fullpath = "#{path}/#{file}"
             else
                 fullpath = file
             end
@@ -309,22 +317,27 @@ when 'list', 'ls'
         }
     }
 when 'du'
-    obj = ARGV[0]
-    if obj.nil?
-        total_size = du_recurse(user, "")
-        puts "%10d %s" % [ total_size, "/" ]
+    path = ARGV[0]
+    mycont = container
+    if mycont.nil?
+        mycont = Hubic.for_user(user).get_var('default_container')
     end
-    ARGV.each {|obj|
-        total_size = du_recurse(user, obj)
-        puts "%10d %s" % [ total_size, obj ]
+        
+    if path.nil?
+        total_size = du_recurse(user, "", container)
+        puts "%10d hubic://%s/" % [ total_size, mycont ]
+    end
+    ARGV.each {|path|
+        total_size = du_recurse(user, path, container)
+        puts "%10d hubic://%s/%s" % [ total_size, mycont, path ]
     }
 when 'delete'
-    obj = ARGV[0]
-    if obj.nil?
+    path = ARGV[0]
+    if path.nil?
         raise "You must provide the path as the first argument"
     end
-    ARGV.each {|obj|
-        Hubic.for_user(user).delete(obj)
+    ARGV.each {|path|
+        Hubic.for_user(user).delete(path)
     }
 when 'containers'
     Hubic.for_user(user).containers.each {|name, meta|
