@@ -8,3 +8,6 @@
   come from?  Can we hide it or make a better output?
 - found in owncloud-files-hubic 'httpd/unix-directory', could be a dirtype to
   add
+
+BUGS:
+ - 'hubic ls -- -l dir/file' -> ''

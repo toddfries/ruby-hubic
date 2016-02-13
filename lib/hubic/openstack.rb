@@ -346,6 +346,14 @@ class Hubic
         @default_container = name
     end
 
+    def get_var(var)
+        if var == 'default_container'
+            @default_container
+        else
+            nil
+        end
+    end
+
     def api_openstack(method, path, params=nil)
         openstack_setup_refresh
 
@@ -399,8 +407,17 @@ class Hubic
                when String
                    [ @default_container, obj ]
                when Hash
-                   [ obj[:name] || obj[:path],
-                     (obj[:container] || @default_container).to_s ]
+                   if obj[:name].nil?
+                       path = obj[:path]
+                   else
+                       path = obj[:name]
+                   end
+                   if obj[:container].nil?
+                       cont = @default_container.to_s
+                   else
+                       cont = obj[:container]
+                   end
+                   [ cont, path ]
                when Array
                    case obj.length
                    when 1 then [ @default_container, obj ]
