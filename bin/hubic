@@ -123,12 +123,13 @@ if user.nil?
     raise "User required!"
 end
 
-def du_recurse(user, patharg, container)
+def du_recurse(user, patharg, container, copts)
+    me = Hubic.for_user(user)
     tsize = 0
     if container.nil?
-        entries = Hubic.for_user(user).list(patharg)
+        raise "should not call with nil container!"
     else
-        entries = Hubic.for_user(user).list(patharg, container)
+        entries = me.list(patharg, container)
     end
     entries.each {|path, meta|
         if patharg
@@ -137,18 +138,25 @@ def du_recurse(user, patharg, container)
         else
             fullpath = path
         end
+        
         if meta[:type] == 'application/directory'
-            size = du_recurse(user, fullpath, container)
+            type = "dir"
+        elsif meta[:size] == 0
+            # XXX why does :type show up as application/octet-stream for dirs?
+            type = "dir"
+        end
+        
+        if type == 'dir'    
+            size = du_recurse(user, fullpath, container, copts)
             astr = '/'
         else
             size = meta[:size]
             astr = ''
         end
         tsize += size
-        # XXX proper way to conditionalize the puts based on global -V ?
-        #if verb > 0
-        #   puts "+%10d = %10d %s%s" % [ size, tsize, fullpath, astr ]
-        #end
+        if copts.all
+           puts "%13d hubic://%s/%s%s" % [ size, container, fullpath, astr ]
+        end
     }
     tsize
 end
@@ -245,14 +253,19 @@ when 'md5'
         raise "You must provide the path as the first argument"
     end
     ARGV.each {|path|
-        obj[:name] = path
-        obj[:container] = container
+        obj = {
+                :name => path,
+                :container => container
+        }
 
         hash = Hubic.for_user(user).md5(obj)
+        if hash.nil?
+            hash = "<not found>"
+        end
         if copts.quiet == true
             puts hash
         else
-            puts "MD5 (%s) = %s" % [ obj, hash ]
+            puts "MD5 (%s) = %s" % [ path, hash ]
         end
     }
 when 'list', 'ls'
@@ -310,13 +323,21 @@ when 'list', 'ls'
 
             
             if copts.long
-                puts "%s %-32s %10d %s %s" % [ stype, hash, size, time, fullpath ]
+                puts "%s %-32s %13d %s %s" % [ stype, hash, size, time, fullpath ]
             else
                 puts "%s%s" % [ fullpath, astr ]
             end
         }
     }
 when 'du'
+
+    copts = OpenStruct.new
+    OptionParser.new {|opts|
+        opts.on("-a", "all") do |v|
+            copts.all = true
+        end
+    }.parse!
+
     path = ARGV[0]
     mycont = container
     if mycont.nil?
@@ -324,12 +345,12 @@ when 'du'
     end
         
     if path.nil?
-        total_size = du_recurse(user, "", container)
-        puts "%10d hubic://%s/" % [ total_size, mycont ]
+        total_size = du_recurse(user, "", mycont, copts)
+        puts "%13d hubic://%s/" % [ total_size, mycont ]
     end
     ARGV.each {|path|
-        total_size = du_recurse(user, path, container)
-        puts "%10d hubic://%s/%s" % [ total_size, mycont, path ]
+        total_size = du_recurse(user, path, mycont, copts)
+        puts "%13d hubic://%s/%s" % [ total_size, mycont, path ]
     }
 when 'delete'
     path = ARGV[0]

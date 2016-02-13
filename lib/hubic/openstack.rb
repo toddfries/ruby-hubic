@@ -401,8 +401,17 @@ class Hubic
                when String
                    [ @default_container, obj ]
                when Hash
-                   [ obj[:name] || obj[:path],
-                     (obj[:container] || @default_container).to_s ]
+                   if obj[:name].nil?
+                       path = obj[:path]
+                   else
+                       path = obj[:name]
+                   end
+                   if obj[:container].nil?
+                       cont = @default_container.to_s
+                   else
+                       cont = obj[:container]
+                   end
+                   [ cont, path ]
                when Array
                    case obj.length
                    when 1 then [ @default_container, obj ]

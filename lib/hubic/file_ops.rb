@@ -129,7 +129,11 @@ class Hubic
 
     def md5(obj)
         meta = get_metadata(obj)
-        meta[:etag]
+	if meta.nil?
+		nil
+        else
+		meta[:etag]
+	end
     end
 
 
