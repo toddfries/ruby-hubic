@@ -250,6 +250,9 @@ class Hubic
         rescue Faraday::TimeoutError
             puts "Handling Faraday::TimeoutError"
             doretry = 1
+	rescue Errno::ETIMEDOUT
+            puts "Handling Errno::ETIMEDOUT"
+            doretry = 1
         end
         retrycount += 1
         break unless retrycount > maxretry && doretry > 0

@@ -85,6 +85,8 @@ class Hubic
                 meta = nil
             when Net::HTTPRequestTimeOut
                 doretry = 1
+            when Net::HTTPServiceUnavailable
+                doretry = 1
             when Net::HTTPRedirection
                 location = response['location']
                 fail "redirected to #{location}, not yet handled"
@@ -144,6 +146,7 @@ class Hubic
             meta    = parse_response_for_meta(response)
 
             if block
+                puts "block: #{block}"
                 block.call(meta)
             end
 
@@ -245,6 +248,8 @@ class Hubic
                 # TODO: Need to refresh token
             when Net::HTTPRequestTimeOut
                 doretry = 1
+            when Net::HTTPServiceUnavailable
+                doretry = 1
             else
                 fail "resource unavailable: #{uri} (#{response.class} = #{response})"
             end
@@ -255,6 +260,7 @@ class Hubic
         break unless retrycount < maxretry && doretry == 1
         end
         if block
+            puts "put_object(#{obj}): block: #{block}"
             block.call(:done)
         end
     ensure
