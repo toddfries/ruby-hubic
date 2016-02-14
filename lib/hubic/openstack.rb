@@ -250,6 +250,8 @@ class Hubic
                 doretry = 1
             when Net::HTTPServiceUnavailable
                 doretry = 1
+            when Net::HTTPRequestEntityTooLarge
+                fail "Uploading a file (#{path}) that is too large for hubic"
             else
                 fail "resource unavailable: #{uri} (#{response.class} = #{response})"
             end
