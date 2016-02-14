@@ -25,9 +25,9 @@ class Hubic
         if (meta = get_metadata(obj)).nil?
             put_object(obj, nil, TYPE_DIRECTORY)
         elsif meta[:type] != TYPE_DIRECTORY
-            raise Error::Exists, "a file already exists"
+            raise "mkdir: ",path, Error::Exists, "a file already exists"
         elsif !parents
-            raise Error::Exists, "the directory already exists"
+            puts "mkdir: ",path,Error::Exists, "the directory already exists"
         end
     end
 
