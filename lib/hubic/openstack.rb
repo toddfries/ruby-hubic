@@ -241,6 +241,7 @@ class Hubic
         http.request(request) {|response|
             case response
             when Net::HTTPSuccess
+                #puts "put_object: success! #{response}"
             when Net::HTTPRedirection
                 location = response['location']
                 fail "redirected to #{location}, not yet handled"
@@ -254,7 +255,7 @@ class Hubic
                 fail "resource unavailable: #{uri} (#{response.class} = #{response})"
             end
 
-            puts response.inspect
+            #puts response.inspect
         }
         retrycount += 1
         break unless retrycount < maxretry && doretry == 1
