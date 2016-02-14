@@ -61,3 +61,7 @@ And then
 ```sh
 export SSL_CERT_FILE=~/cacert.pem
 ```
+
+Limits
+------
+https://hubic.com/en/limits
