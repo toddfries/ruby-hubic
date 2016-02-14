@@ -236,8 +236,8 @@ when 'mkdir'
     if ARGV[0].nil?
         warn "You must provide the path as the first argument"
     else
-    ARGV.each {|obj|
-        Hubic.for_user(user).mkdir(obj, parents: copts.parent)
+    ARGV.each {|path|
+        Hubic.for_user(user).mkdir(path, parents: copts.parent)
     }
     end
 when 'md5'
