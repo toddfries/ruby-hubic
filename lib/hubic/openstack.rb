@@ -87,6 +87,8 @@ class Hubic
                 doretry = 1
             when Net::HTTPServiceUnavailable
                 doretry = 1
+            when Net::HTTPBadGateway
+                doretry = 1
             when Net::HTTPRedirection
                 location = response['location']
                 fail "redirected to #{location}, not yet handled"
@@ -250,6 +252,10 @@ class Hubic
             when Net::HTTPRequestTimeOut
                 doretry = 1
             when Net::HTTPServiceUnavailable
+                doretry = 1
+            when Errno::EPIPE
+                doretry = 1
+            when Net::HTTPBadGateway
                 doretry = 1
             when Net::HTTPRequestEntityTooLarge
                 fail "Uploading a file (#{path}) that is too large for hubic"
