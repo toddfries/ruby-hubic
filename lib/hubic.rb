@@ -147,7 +147,11 @@ class Hubic
             req.headers['Authorization'] = "Bearer #{@access_token}"
             req.params = params if params
         end
-        JSON.parse(r.body)
+        if r.body.nil?
+                nil
+        else
+                JSON.parse(r.body)
+        end
     end
 
     private
@@ -250,7 +254,7 @@ class Hubic
         rescue Faraday::TimeoutError
             puts "Handling Faraday::TimeoutError"
             doretry = 1
-	rescue Errno::ETIMEDOUT
+        rescue Errno::ETIMEDOUT
             puts "Handling Errno::ETIMEDOUT"
             doretry = 1
         end
