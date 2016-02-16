@@ -8,6 +8,8 @@
   come from?  Can we hide it or make a better output?
 - found in owncloud-files-hubic 'httpd/unix-directory', could be a dirtype to
   add
+FEATURE:
+ - 'hubic upload file file' -> 'md5 <localfile>' 'md5 <remotefile>' if same, skip; make a flag to disable and force `no checksum mode' aka force overwrite
 
 BUGS:
  - 'hubic ls -- -l dir/file' -> ''
