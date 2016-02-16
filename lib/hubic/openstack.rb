@@ -448,6 +448,7 @@ class Hubic
                end
         c = c.to_s
         p = p[1..-1] if p[0] == ?/
+        p = p.gsub(/\s/) {|s| "%20"}
         [ c, p, URI("#{@os[:endpoint]}/#{c}/#{p}") ]
     end
 
@@ -458,8 +459,12 @@ class Hubic
             # h.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
         #h.read_timeout(600)
-        h.start
-        h
+        begin
+            h.start
+        rescue Errno::ECONNREFUSED
+            puts "init_http(#{uri}): ECONNREFUSED"
+            fail "init_http: Finish me"
+        end
     end
 
 end
