@@ -219,7 +219,11 @@ class Hubic
             :client_id     => @client_id,
             :client_secret => @client_secret
         }
+        if r.body.nil?
+            raise Error::Auth, "get_access_token(#{code}): post returned nil"
+        end
         j = JSON.parse(r.body)
+
         case r.status
         when 200
             {   :acces_token   => j['access_token'],
@@ -285,6 +289,3 @@ class Hubic
     end
 
 end
-
-
-
