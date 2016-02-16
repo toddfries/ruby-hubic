@@ -265,6 +265,9 @@ class Hubic
             puts "Handling Errno::ETIMEDOUT"
             doretry = 1
         end
+        if r.body.nil?
+            doretry = 1
+        end
         retrycount += 1
         break unless retrycount > maxretry && doretry > 0
         end
