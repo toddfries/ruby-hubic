@@ -254,6 +254,9 @@ class Hubic
         rescue Faraday::TimeoutError
             puts "Handling Faraday::TimeoutError"
             doretry = 1
+        rescue Faraday::ConnectionFailed
+            puts "Handling Faraday::ConnectionFailed"
+            doretry = 1
         rescue Errno::ETIMEDOUT
             puts "Handling Errno::ETIMEDOUT"
             doretry = 1

@@ -387,9 +387,11 @@ class Hubic
 
         data     = self.credentials
         return if data.nil?
+        exptmp = data['expires']
+        return if expires.nil?
         endpoint = data['endpoint']
         token    = data['token']
-        expires  = Time.parse(data['expires'])
+        expires  = Time.parse(exptmp)
 
         openstack_setup(endpoint, token, expires)
     end
