@@ -64,9 +64,10 @@ class Hubic
 
     def get_metadata(obj)
         container, path, uri = normalize_object(obj)
+        if uri.nil?
+            fail "normalize_obj(#{obj}) returned a nil uri"
+        end
         meta = {}
-
-
         hdrs = {}
         hdrs['X-Auth-Token'] = @os[:token]
 
