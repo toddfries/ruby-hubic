@@ -198,20 +198,25 @@ when 'upload'   # local -> hubic
         end
     }
     upcount=1
+    upfmt="upload[%d]: %s -> hubic://%s"
     if dcount < 1
         # foo0.jpg cloud/testdir/foo0.jpg
         src = ARGV[0]
         dst = ARGV[1]
-        if verb > 0
-            puts "upload[#{upcount}]: #{src} -> hubic:/#{dst}"
-        end
+        #if verb > 0
+            str=upfmt % [ upcount, src, dst ]
+            str = str.gsub(/\/\/\//) {|s| "//"}
+            puts str
+        #end
         Hubic.for_user(user).upload(src, dst)
     elsif dcount > 1
         raise "cannot specify more than one distination dir"
     else
         # foo0.jpg foo1.jpg foo2.jpg ... cloud/testdir
         myfiles.each{|path|
-            puts "upload[#{upcount}]: #{path} -> hubic:/#{mydir} (each)"
+            str=upfmt % [ upcount, path, mydir ]
+            str = str.gsub(/\/\/\//) {|s| "//"}
+            puts str
             Hubic.for_user(user).upload(path, mydir)
             upcount += 1
         }
