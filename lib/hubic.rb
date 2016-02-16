@@ -263,7 +263,12 @@ class Hubic
         end
 
 
+        begin
         j = JSON.parse(r.body)
+        rescue JSON::ParserError
+            puts "JSON Parser Error..."
+            fail "Finish me..."
+        end
         case r.status
         when 200
             {   :access_token => j['access_token'],
