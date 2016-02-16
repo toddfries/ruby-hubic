@@ -78,6 +78,7 @@ class Hubic
         doretry = 0
         newlocation = nil
         loop do
+        begin
         http.request_head(uri.request_uri, hdrs) {|response|
             case response
             when Net::HTTPSuccess
@@ -100,6 +101,9 @@ class Hubic
                 fail "resource unavailable: #{uri} (#{response.class} = #{response})"
             end
         }
+        rescue NoMethodError
+            fail "NoMehodError: uri = #{uri}"
+        end
         retrycount += 1
         break unless retrycount < maxretry && doretry == 1
         end
