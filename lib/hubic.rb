@@ -266,7 +266,7 @@ class Hubic
         begin
         j = JSON.parse(r.body)
         rescue JSON::ParserError
-            puts "JSON Parser Error..."
+            puts "JSON Parser Error... r.body = #{r.body}"
             fail "Finish me..."
         end
         case r.status
