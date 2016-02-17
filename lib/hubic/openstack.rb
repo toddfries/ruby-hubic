@@ -103,9 +103,11 @@ class Hubic
         }
         rescue NoMethodError
             fail "NoMehodError: uri = #{uri}"
+        rescue Exception => e
+            puts "get_metadata exception: %s" % [ e.message ]
         end
-        retrycount += 1
         break unless retrycount < maxretry && doretry == 1
+        retrycount += 1
         end
 
         meta
@@ -136,6 +138,7 @@ class Hubic
         maxretry = 3
         doretry = 0
         loop do
+        begin
         http.request_get(uri.request_uri, hdrs) {|response|
             case response
             when Net::HTTPSuccess
@@ -169,8 +172,11 @@ class Hubic
                 end
             }
         }
-        retrycount += 1
+        rescue Exception => e
+            puts "get_object exception: %s" % [ e.message ]
+        end
         break unless retrycount < maxretry && doretry == 1
+        retrycount += 1
         end
         if block
             block.call(:done)
@@ -195,6 +201,7 @@ class Hubic
         maxretry = 3
         doretry = 0
         loop do
+        begin
         http.copy(uri.request_uri, hdrs) {|response|
             case response
             when Net::HTTPSuccess
@@ -212,8 +219,11 @@ class Hubic
             meta    = parse_response_for_meta(response)
 
         }
-        retrycount += 1
+        rescue Exception => e
+            puts "copy_object exception: %s" % [ e.message ]
+        end
         break unless retrycount < maxretry && doretry == 1
+        retrycount += 1
         end
 
         meta
@@ -270,8 +280,8 @@ class Hubic
 
             #puts response.inspect
         }
-        retrycount += 1
         break unless retrycount < maxretry && doretry == 1
+        retrycount += 1
         end
         if block
             puts "put_object(#{obj}): block: #{block}"
@@ -319,8 +329,8 @@ class Hubic
 
             #puts response.inspect
         }
-        retrycount += 1
         break unless retrycount < maxretry && doretry == 1
+        retrycount += 1
         end
         if block
             block.call(:done)
@@ -463,11 +473,20 @@ class Hubic
             # h.verify_mode = OpenSSL::SSL::VERIFY_NONE
         end
         #h.read_timeout(600)
-        begin
-            h.start
-        rescue Errno::ECONNREFUSED
-            puts "init_http(#{uri}): ECONNREFUSED"
-            fail "init_http: Finish me"
+        retrycount = 0
+        maxretry = 3
+        doretry = 0
+        loop do
+            begin
+                h.start
+            rescue Errno::ECONNREFUSED
+                puts "init_http(#{uri}): ECONNREFUSED"
+                doretry = 1
+            rescue Exception => e
+                puts "init_http exception: %s" % [ e.message ]
+            end
+        break unless retrycount < maxretry && doretry == 1
+        retrycount += 1
         end
     end
 
