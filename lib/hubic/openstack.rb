@@ -284,6 +284,8 @@ class Hubic
 
     def delete_object(obj, &block)
         container, path, uri = normalize_object(obj)
+        upath = "hubic://#{container}/#{path}".gsub(/\/\//) {|s| "/"}
+        upath = upath.gsub(/:\//) {|s| "://"}
 
         hdrs = {}
         hdrs['X-Auth-Token'     ] = @os[:token]
@@ -298,22 +300,24 @@ class Hubic
         http.request(request) {|response|
             case response
             when Net::HTTPNoContent
+                puts "Successfully removed #{upath}"
             when Net::HTTPSuccess
+                puts "Successfully removed #{upath}"
             when Net::HTTPRedirection
                 location = response['location']
                 fail "redirected to #{location}, not yet handled"
             when Net::HTTPUnauthorized
-                # TODO: Need to refresh token
+                puts "Finish me .. refresh token code goes here"
             when Net::HTTPRequestTimeOut
                 doretry = 1
             when Net::HTTPNotFound
                 meta = nil
-                puts "Not Found"
+                puts "#{upath} Not Found"
             else
                 fail "resource unavailable: #{uri} (#{response.class} = #{response})"
             end
 
-            puts response.inspect
+            #puts response.inspect
         }
         retrycount += 1
         break unless retrycount < maxretry && doretry == 1
