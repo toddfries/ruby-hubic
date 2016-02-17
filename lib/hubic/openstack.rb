@@ -103,8 +103,8 @@ class Hubic
         }
         rescue NoMethodError
             fail "NoMehodError: uri = #{uri}"
-        #rescue Exception => e
-        #    puts "get_metadata exception: %s" % [ e.message ]
+        rescue Exception => e
+            fail "get_metadata(hubic://#{container}/#{path}): %s" % [ e.message ]
         end
         break unless retrycount < maxretry && doretry == 1
         retrycount += 1
@@ -172,8 +172,8 @@ class Hubic
                 end
             }
         }
-        #rescue Exception => e
-        #    puts "get_object exception: %s" % [ e.message ]
+        rescue Exception => e
+            fail "get_object(hubic://#{container}/#{path}): %s" % [ e.message ]
         end
         break unless retrycount < maxretry && doretry == 1
         retrycount += 1
@@ -219,8 +219,8 @@ class Hubic
             meta    = parse_response_for_meta(response)
 
         }
-        #rescue Exception => e
-        #    puts "copy_object exception: %s" % [ e.message ]
+        rescue Exception => e
+            fail "copy_object(hubic://#{container}/#{path}): %s" % [ e.message ]
         end
         break unless retrycount < maxretry && doretry == 1
         retrycount += 1
@@ -476,18 +476,16 @@ class Hubic
         retrycount = 0
         maxretry = 3
         doretry = 0
-        loop do
+        #loop do
             begin
                 h.start
             rescue Errno::ECONNREFUSED
                 puts "init_http(#{uri}): ECONNREFUSED"
                 doretry = 1
-            #rescue Exception => e
-            #    puts "init_http exception: %s" % [ e.message ]
             end
-        break unless retrycount < maxretry && doretry == 1
-        retrycount += 1
-        end
+        #retrycount += 1
+        #break unless retrycount < maxretry && doretry == 1
+        #end
     end
 
 end
