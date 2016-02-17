@@ -34,6 +34,7 @@ options = OptionParser.new do |opts|
     opts.separator "  hubic md5        cloud/cloud-file.txt"
     opts.separator "  hubic download   cloud/cloud-file.txt"
     opts.separator "  hubic delete     cloud/cloud-file.txt"
+    opts.separator "  hubic rm         cloud/cloud-file.txt"
     opts.separator "  hubic list [-al] cloud"
     opts.separator "  hubic ls   [-al] cloud"
     opts.separator "  hubic du         cloud"
@@ -359,7 +360,7 @@ when 'du'
         total_size = du_recurse(user, path, mycont, copts)
         puts "%13d hubic://%s/%s" % [ total_size, mycont, path ]
     }
-when 'delete'
+when 'delete', 'rm'
     path = ARGV[0]
     if path.nil?
         raise "You must provide the path as the first argument"
