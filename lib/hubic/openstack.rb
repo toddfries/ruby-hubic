@@ -480,8 +480,8 @@ class Hubic
             begin
                 h.start
             rescue Errno::ECONNREFUSED
-                puts "init_http(#{uri}): ECONNREFUSED"
-                doretry = 1
+                fail "init_http(#{uri}): ECONNREFUSED"
+                #doretry = 1
             end
         #retrycount += 1
         #break unless retrycount < maxretry && doretry == 1

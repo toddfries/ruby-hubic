@@ -264,8 +264,10 @@ class Hubic
         rescue Errno::ETIMEDOUT
             puts "Handling Errno::ETIMEDOUT"
             doretry = 1
+        rescue Exception => e
+            fail "refresh_access_token: %s" % [ e.message ]
         end
-        if r.body.nil?
+        if r.body.nil? || r.body.size == 0
             doretry = 1
         end
         retrycount += 1
@@ -273,10 +275,13 @@ class Hubic
         end
 
 
+        if r.body.nil? || r.body.size == 0
+            fail "refresh_token_access: /oauth/token returned nothing..."
+        end
         begin
         j = JSON.parse(r.body)
         rescue JSON::ParserError
-            puts "JSON Parser Error... r.body = #{r.body}"
+            puts "JSON Parser Error... r.body = #{r.body}, size = %d" % [ r.body.size ]
             fail "Finish me..."
         end
         case r.status
