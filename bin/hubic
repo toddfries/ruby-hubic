@@ -276,6 +276,22 @@ when 'md5'
             puts "MD5 (%s) = %s" % [ path, hash ]
         end
     }
+when 'stat'
+    if ARGV[0].nil?
+        raise "You must provide the path as the first argument"
+    end
+    ARGV.each {|path|
+        obj = {
+                :name => path,
+                :container => container
+        }
+
+        meta = Hubic.for_user(user).stat(obj)
+        if meta.nil?
+            meta = {:size => 0, :etag => "", :path => "<not found>" }
+        end
+        puts "%12d %s %s" % [ meta[:size], meta[:etag], path ]
+    }
 when 'list', 'ls'
 
     copts = OpenStruct.new
