@@ -147,7 +147,7 @@ class Hubic
             req.headers['Authorization'] = "Bearer #{@access_token}"
             req.params = params if params
         end
-        if r.body.nil?
+        if r.body.nil? || r.body.size == 0
                 nil
         else
                 JSON.parse(r.body)
@@ -219,7 +219,7 @@ class Hubic
             :client_id     => @client_id,
             :client_secret => @client_secret
         }
-        if r.body.nil?
+        if r.body.nil? || r.body.size == 0
             raise Error::Auth, "get_access_token(#{code}): post returned nil"
         end
         j = JSON.parse(r.body)
