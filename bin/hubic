@@ -367,6 +367,17 @@ when 'list', 'ls'
             end
         }
     }
+when 'df'
+    foru = Hubic.for_user(user)
+    acc = foru.account
+    cred =  Hubic.for_user(user).credentials
+    usage = Hubic.for_user(user).usage
+    puts "%12s %12s %s" % [ "Available", "Used", "1k blocks" ]
+    puts "%12d %12d %s %s <%s>" % [ usage['quota'] / 1024, usage['used'] / 1024,
+        acc['firstname'], acc['lastname'], acc['email'] ]
+    Hubic.for_user(user).containers.each {|name, meta|
+       puts "%12d %12d %s" % [ 0, meta[:size] / 1024, name ]
+    }
 when 'du'
 
     copts = OpenStruct.new
