@@ -8,6 +8,9 @@ require 'ostruct'
 require 'mime/types'
 
 
+$stdout.sync = true
+$stderr.sync = true
+
 HUBIC_CLIENT_CFG = "#{ENV['HOME']}/.hubic-client"
 
 exclusive_options = []
@@ -207,9 +210,10 @@ when 'upload'   # local -> hubic
         #if verb > 0
             str=upfmt % [ upcount, src, dst ]
             str = str.gsub(/\/\/\//) {|s| "//"}
-            puts str
+            print str
         #end
         Hubic.for_user(user).upload(src, dst)
+        puts " done."
     elsif dcount > 1
         raise "cannot specify more than one distination dir"
     else
@@ -217,8 +221,9 @@ when 'upload'   # local -> hubic
         myfiles.each{|path|
             str=upfmt % [ upcount, path, mydir ]
             str = str.gsub(/\/\/\//) {|s| "//"}
-            puts str
+            print str
             Hubic.for_user(user).upload(path, mydir)
+            puts " done."
             upcount += 1
         }
     end
