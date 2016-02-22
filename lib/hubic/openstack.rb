@@ -59,6 +59,7 @@ class Hubic
           :type    => response['content-type'],
           :etag    => response['etag']
         }
+        #puts "parse_response_for_meta: response = '#{response}'"
     end
 
 
@@ -75,9 +76,9 @@ class Hubic
 
         retrycount = 0
         maxretry = 3
-        doretry = 0
         newlocation = nil
         loop do
+        doretry = 0
         begin
         http.request_head(uri.request_uri, hdrs) {|response|
             case response
@@ -95,7 +96,6 @@ class Hubic
                 location = response['location']
                 fail "redirected to #{location}, not yet handled"
             when Net::HTTPUnauthorized
-                # TODO: Need to refresh token
                 puts "TODO: Need to refresh token here"
             else
                 fail "resource unavailable: #{uri} (#{response.class} = #{response})"
@@ -136,8 +136,8 @@ class Hubic
 
         retrycount = 0
         maxretry = 3
-        doretry = 0
         loop do
+        doretry = 0
         begin
         http.request_get(uri.request_uri, hdrs) {|response|
             case response
@@ -199,8 +199,8 @@ class Hubic
 
         retrycount = 0
         maxretry = 3
-        doretry = 0
         loop do
+        doretry = 0
         begin
         http.copy(uri.request_uri, hdrs) {|response|
             case response
@@ -253,8 +253,8 @@ class Hubic
         request.body_stream = io
         retrycount = 0
         maxretry = 3
-        doretry = 0
         loop do
+        doretry = 0
         http.request(request) {|response|
             case response
             when Net::HTTPSuccess
@@ -305,8 +305,8 @@ class Hubic
         request = Net::HTTP::Delete.new(uri.request_uri, hdrs)
         retrycount = 0
         maxretry = 3
-        doretry = 0
         loop do
+        doretry = 0
         http.request(request) {|response|
             case response
             when Net::HTTPNoContent
@@ -396,7 +396,7 @@ class Hubic
 
         if r.body.nil? || r.body.empty?
         then [ nil,                r.headers ]
-        else [ JSON.parse(r.body), r.headers ]
+        else [ json_parse(r), r.headers ]
         end
     end
 
@@ -475,8 +475,8 @@ class Hubic
         #h.read_timeout(600)
         retrycount = 0
         maxretry = 3
-        doretry = 0
         #loop do
+        doretry = 0
             begin
                 h.start
             rescue Errno::ECONNREFUSED

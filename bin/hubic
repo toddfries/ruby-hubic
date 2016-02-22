@@ -270,15 +270,24 @@ when 'md5'
                 :name => path,
                 :container => container
         }
-
-        hash = Hubic.for_user(user).md5(obj)
-        if hash.nil?
-            hash = "<not found>"
-        end
-        if copts.quiet == true
-            puts hash
-        else
-            puts "MD5 (%s) = %s" % [ path, hash ]
+        retrycount = 0
+        maxretry = 30
+	loop do
+            doretry = 0
+            hash = Hubic.for_user(user).md5(obj)
+            if hash.nil?
+                hash = "<not found>"
+            elsif hash.length != 32
+                retrycount += 1
+                next
+            end
+            if copts.quiet == true
+                puts hash
+            else
+                puts "MD5 (%s) = %s" % [ path, hash ]
+            end
+	    break unless retrycount < maxretry && doretry == 1
+            retrycount += 1
         end
     }
 when 'stat'
@@ -293,7 +302,7 @@ when 'stat'
 
         meta = Hubic.for_user(user).stat(obj)
         if meta.nil?
-            meta = {:size => 0, :etag => "", :path => "<not found>" }
+            meta = {:size => 0, :etag => "<no hash, file not found       >" }
         end
         puts "%12d %s %s" % [ meta[:size], meta[:etag], path ]
     }

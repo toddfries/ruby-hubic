@@ -147,11 +147,7 @@ class Hubic
             req.headers['Authorization'] = "Bearer #{@access_token}"
             req.params = params if params
         end
-        if r.body.nil? || r.body.size == 0
-                nil
-        else
-                JSON.parse(r.body)
-        end
+        json_parse(r)
     end
 
     private
@@ -219,10 +215,7 @@ class Hubic
             :client_id     => @client_id,
             :client_secret => @client_secret
         }
-        if r.body.nil? || r.body.size == 0
-            raise Error::Auth, "get_access_token(#{code}): post returned nil"
-        end
-        j = JSON.parse(r.body)
+        j = json_parse(r)
 
         case r.status
         when 200
@@ -275,15 +268,7 @@ class Hubic
         end
 
 
-        if r.body.nil? || r.body.size == 0
-            fail "refresh_token_access: /oauth/token returned nothing..."
-        end
-        begin
-        j = JSON.parse(r.body)
-        rescue JSON::ParserError
-            puts "JSON Parser Error... r.body = #{r.body}, size = %d" % [ r.body.size ]
-            fail "Finish me..."
-        end
+        j = json_parse(r)
         case r.status
         when 200
             {   :access_token => j['access_token'],
@@ -296,4 +281,36 @@ class Hubic
         end
     end
 
+    def json_parse( r )
+        if r.body.nil? || r.body.size == 0
+            fail "returned nothing..."
+        end
+        #if r.body.re /<head><title>302 Found/
+        begin
+        j = JSON.parse(r.body)
+        case r.status
+        when 200
+            #puts "json_parse: success (%s) body '%s'" % [ r.status, r.body ]
+            #puts "json_parse: parsed '%s'" % [ j.to_s ]
+        when 400, 401, 500
+            puts "json_parse: parsed '%s'" % [ j.to_s ]
+            puts "json_parse: http error (%s) body '%s'" % [ r.status, r.body ]
+            show_r_headers("json_parse", r)
+        else
+            puts "json_parse: unhandled response code (#{r.status})"
+            show_r_headers("json_parse", r)
+        end
+        rescue JSON::ParserError
+            puts "JSON Parser Error... text = '%s', size = %d" % [ r.body, r.body.size ]
+            fail "Finish me..."
+        end
+        j
+    end
+
+    def show_r_headers( pre, r )
+        puts "%s: r = '%s', r.status = '%s'" % [ pre, r.to_s, r.status ]
+        r.headers.each{ |var,val|
+            puts "%s: r.header: '%s' = '%s'" % [ pre, var, val ]
+        }
+    end
 end
