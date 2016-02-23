@@ -42,6 +42,9 @@ options = OptionParser.new do |opts|
     opts.separator "  hubic ls   [-al] cloud"
     opts.separator "  hubic du         cloud"
     opts.separator ""
+    opts.separator "Note:"
+    opts.separator "  'hubic -c foo rm /' will delete container 'foo'"
+    opts.separator ""
     opts.separator "Options:"
     
     opts.on_tail("-h", "--help", "Show this message") do
@@ -69,6 +72,7 @@ options = OptionParser.new do |opts|
         puts "Hubic #{Hubic::VERSION}"
         exit
     end
+
 end
 opts = options
 opts.parse!
@@ -414,7 +418,11 @@ when 'delete', 'rm'
         raise "You must provide the path as the first argument"
     end
     ARGV.each {|path|
-        foru.delete(path)
+        obj = {
+                :name => path,
+                :container => container
+        }
+        foru.delete(obj)
     }
 else
     $stderr.puts "Unknown command"
