@@ -118,11 +118,6 @@ class Hubic
         end
     end
 
-
-
-
-
-
     def account
         api_hubic(:get, '/1.0/account')
     end
@@ -143,11 +138,30 @@ class Hubic
     # @param params [Hash]
     # @return [Hash]
     def api_hubic(method, path, params=nil)
-        r = @conn.method(method).call(path) do |req|
-            req.headers['Authorization'] = "Bearer #{@access_token}"
-            req.params = params if params
+        retrycount = 0
+        j = nil
+	loop do
+            doretry = 0
+            r = @conn.method(method).call(path) do |req|
+                req.headers['Authorization'] = "Bearer #{@access_token}"
+                req.params = params if params
+            end
+            j = json_parse(r)
+            if j.nil?
+                puts "json_parse returned nil, lets try again?"
+                doretry = 1
+            elsif j['error'] == "invalid_token"
+                puts "api_hubic caught invalid_token attempting to refresh"
+		refresh_access_token
+                doretry = 1
+            end
+            break unless doretry == 1
+            retrycount += 1
+            st = (10*(retrycount/5))
+            puts "Sleeping %ds before retrying" % [ st ]
+            sleep(st)
         end
-        json_parse(r)
+        j
     end
 
     private
@@ -284,9 +298,9 @@ class Hubic
 
     def json_parse( r )
         if r.body.nil? || r.body.size == 0
-            fail "returned nothing..."
+            puts "r.body is nil, hmm..."
+            return nil
         end
-        #if r.body.re /<head><title>302 Found/
         begin
             j = JSON.parse(r.body)
             case r.status
@@ -295,10 +309,12 @@ class Hubic
                 #    [ r.status, r.body ]
                 #puts "json_parse: parsed '%s'" % [ j.to_s ]
             when 400, 401, 500
-                puts "json_parse: parsed '%s'" % [ j.to_s ]
-                puts "json_parse: http error (%s) body '%s'" %
-                    [ r.status, r.body ]
-                show_r_headers("json_parse", r)
+                if j['error'] != "invalid_token"
+                    puts "json_parse: parsed '%s'" % [ j.to_s ]
+                    puts "json_parse: http error (%s) body '%s'" %
+                        [ r.status, r.body ]
+                    show_r_headers("json_parse", r)
+                end
             else
                 puts "json_parse: unhandled response code (#{r.status})"
                 show_r_headers("json_parse", r)
@@ -306,7 +322,7 @@ class Hubic
         rescue JSON::ParserError
             puts "JSON Parser Error... text = '%s', size = %d" %
                 [ r.body, r.body.size ]
-            fail "Finish me..."
+            j = nil
         end
         j
     end

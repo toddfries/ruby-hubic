@@ -256,7 +256,11 @@ when 'mkdir'
     else
         foru = Hubic.for_user(user)
         ARGV.each {|path|
-            foru.mkdir(path, parents: copts.parent)
+            obj = {
+                :name => path,
+                :container => container
+            }
+            foru.mkdir(obj, parents: copts.parent)
         }
     end
 when 'md5'
@@ -310,9 +314,10 @@ when 'stat'
 
         meta = foru.stat(obj)
         if meta.nil?
-            meta = {:size => 0, :etag => "<no hash, file not found       >" }
+            meta = {:size => 0, :etag => "<no hash, file not found       >",
+                :type => "dev/null" }
         end
-        puts "%12d %s %s" % [ meta[:size], meta[:etag], path ]
+        puts "%12d %s %s (%s)" % [ meta[:size], meta[:etag], path, meta[:type] ]
     }
 when 'list', 'ls'
     foru = Hubic.for_user(user)
