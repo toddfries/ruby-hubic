@@ -127,8 +127,7 @@ if user.nil?
     raise "User required!"
 end
 
-def du_recurse(user, patharg, container, copts)
-    me = Hubic.for_user(user)
+def du_recurse(me, patharg, container, copts)
     tsize = 0
     if container.nil?
         raise "should not call with nil container!"
@@ -151,7 +150,7 @@ def du_recurse(user, patharg, container, copts)
         end
         
         if type == 'dir'    
-            size = du_recurse(user, fullpath, container, copts)
+            size = du_recurse(me, fullpath, container, copts)
             astr = '/'
         else
             size = meta[:size]
@@ -175,6 +174,7 @@ when 'download' # hubic / local
     dst = ARGV[1] || File.basename(obj)
     Hubic.for_user(user).download(obj, dst)
 when 'upload'   # local -> hubic
+    foru = Hubic.for_user(user)
     if ARGV[1].nil?
         raise "Need minimum of two arguments for upload, srclist and dst"
     end
@@ -183,7 +183,7 @@ when 'upload'   # local -> hubic
     myfiles = [ ]
     myfcount=0
     ARGV.each{|path|
-        meta = Hubic.for_user(user).stat(path)
+        meta = foru.stat(path)
         if meta.nil?
             myfiles[myfcount]=path
             myfcount += 1
@@ -212,7 +212,7 @@ when 'upload'   # local -> hubic
             str = str.gsub(/\/\/\//) {|s| "//"}
             print str
         #end
-        Hubic.for_user(user).upload(src, dst)
+        foru.upload(src, dst)
         puts " done."
     elsif dcount > 1
         raise "cannot specify more than one distination dir"
@@ -222,20 +222,21 @@ when 'upload'   # local -> hubic
             str=upfmt % [ upcount, path, mydir ]
             str = str.gsub(/\/\/\//) {|s| "//"}
             print str
-            Hubic.for_user(user).upload(path, mydir)
+            foru.upload(path, mydir)
             puts " done."
             upcount += 1
         }
     end
 when 'hcp'      # hubic copy ( 'hcp hubic://cloud/foo.jpg foo.jpg' )
+    foru = Hubic.for_user(user)
     if ARGV[1].nil?
         raise "You must provide two args for hcp"
     end
     puts "to be implemented"
     # if ARGV[0] =~ hubic:// && ARGV[1] =~ localfilename
-    #    Hubic.for_user(user).download(ARGV[0], ARGV[1])
+    #    foru.download(ARGV[0], ARGV[1])
     # else if ARGV[1] =~ hubic:// && ARGV[0] =~ localfilename
-    #    Hubic.for_user(user).upload(ARGV[0], ARGV[1])
+    #    foru.upload(ARGV[0], ARGV[1])
     # fi
 when 'mkdir'
     copts = OpenStruct.new
@@ -249,9 +250,10 @@ when 'mkdir'
     if ARGV[0].nil?
         warn "You must provide the path as the first argument"
     else
-    ARGV.each {|path|
-        Hubic.for_user(user).mkdir(path, parents: copts.parent)
-    }
+        foru = Hubic.for_user(user)
+        ARGV.each {|path|
+            foru.mkdir(path, parents: copts.parent)
+        }
     end
 when 'md5'
     copts = OpenStruct.new
@@ -265,6 +267,7 @@ when 'md5'
     if ARGV[0].nil?
         raise "You must provide the path as the first argument"
     end
+    foru = Hubic.for_user(user)
     ARGV.each {|path|
         obj = {
                 :name => path,
@@ -274,7 +277,7 @@ when 'md5'
         maxretry = 30
 	loop do
             doretry = 0
-            hash = Hubic.for_user(user).md5(obj)
+            hash = foru.md5(obj)
             if hash.nil?
                 hash = "<not found>"
             elsif hash.length != 32
@@ -294,19 +297,21 @@ when 'stat'
     if ARGV[0].nil?
         raise "You must provide the path as the first argument"
     end
+    foru = Hubic.for_user(user)
     ARGV.each {|path|
         obj = {
                 :name => path,
                 :container => container
         }
 
-        meta = Hubic.for_user(user).stat(obj)
+        meta = foru.stat(obj)
         if meta.nil?
             meta = {:size => 0, :etag => "<no hash, file not found       >" }
         end
         puts "%12d %s %s" % [ meta[:size], meta[:etag], path ]
     }
 when 'list', 'ls'
+    foru = Hubic.for_user(user)
 
     copts = OpenStruct.new
     OptionParser.new {|opts|
@@ -324,9 +329,9 @@ when 'list', 'ls'
     
     ARGV.each {|path|
         if container.nil?
-            entries = Hubic.for_user(user).list(path)
+            entries = foru.list(path)
         else
-            entries = Hubic.for_user(user).list(path, container)
+            entries = foru.list(path, container)
         end
         entries.each {|file, meta|
             if ! path.nil?
@@ -370,15 +375,16 @@ when 'list', 'ls'
 when 'df'
     foru = Hubic.for_user(user)
     acc = foru.account
-    cred =  Hubic.for_user(user).credentials
-    usage = Hubic.for_user(user).usage
+    cred =  foru.credentials
+    usage = foru.usage
     puts "%12s %12s %s" % [ "Available", "Used", "1k blocks" ]
     puts "%12d %12d %s %s <%s>" % [ usage['quota'] / 1024, usage['used'] / 1024,
         acc['firstname'], acc['lastname'], acc['email'] ]
-    Hubic.for_user(user).containers.each {|name, meta|
+    foru.containers.each {|name, meta|
        puts "%12d %12d %s" % [ 0, meta[:size] / 1024, name ]
     }
 when 'du'
+    foru = Hubic.for_user(user)
 
     copts = OpenStruct.new
     OptionParser.new {|opts|
@@ -390,28 +396,25 @@ when 'du'
     path = ARGV[0]
     mycont = container
     if mycont.nil?
-        mycont = Hubic.for_user(user).get_var('default_container')
+        mycont = foru.get_var('default_container')
     end
         
     if path.nil?
-        total_size = du_recurse(user, "", mycont, copts)
+        total_size = du_recurse(foru, "", mycont, copts)
         puts "%13d hubic://%s/" % [ total_size, mycont ]
     end
     ARGV.each {|path|
-        total_size = du_recurse(user, path, mycont, copts)
+        total_size = du_recurse(foru, path, mycont, copts)
         puts "%13d hubic://%s/%s" % [ total_size, mycont, path ]
     }
 when 'delete', 'rm'
+    foru = Hubic.for_user(user)
     path = ARGV[0]
     if path.nil?
         raise "You must provide the path as the first argument"
     end
     ARGV.each {|path|
-        Hubic.for_user(user).delete(path)
-    }
-when 'containers'
-    Hubic.for_user(user).containers.each {|name, meta|
-       puts "name #{name} = #{meta}"
+        foru.delete(path)
     }
 else
     $stderr.puts "Unknown command"
