@@ -78,39 +78,39 @@ class Hubic
         maxretry = 3
         newlocation = nil
         loop do
-        doretry = 0
-        begin
-        http.request_head(uri.request_uri, hdrs) {|response|
-            case response
-            when Net::HTTPSuccess
-                meta = parse_response_for_meta(response)
-            when Net::HTTPNotFound
-                meta = nil
-            when Net::HTTPRequestTimeOut
-                doretry = 1
-            when Net::HTTPServiceUnavailable
-                doretry = 1
-            when Net::HTTPBadGateway
-                doretry = 1
-            when Net::HTTPRedirection
-                location = response['location']
-                fail "redirected to #{location}, not yet handled"
-            when Net::HTTPUnauthorized
-                puts "TODO: Need to refresh token here"
-            else
-                fail "resource unavailable: #{uri} (#{response.class} = #{response})"
+            doretry = 0
+            begin
+                http.request_head(uri.request_uri, hdrs) {|response|
+                    case response
+                    when Net::HTTPSuccess
+                        meta = parse_response_for_meta(response)
+                    when Net::HTTPNotFound
+                        meta = nil
+                    when Net::HTTPRequestTimeOut
+                        doretry = 1
+                    when Net::HTTPServiceUnavailable
+                        doretry = 1
+                    when Net::HTTPBadGateway
+                        doretry = 1
+                    when Net::HTTPRedirection
+                        location = response['location']
+                        fail "redirected to #{location}, not yet handled"
+                    when Net::HTTPUnauthorized
+                        puts "TODO: Need to refresh token here"
+                    else
+                        fail "resource unavailable: #{uri} (#{response.class} = #{response})"
+                    end
+                }
+            rescue NoMethodError
+                fail "NoMehodError: uri = #{uri}"
+            rescue Exception => e
+                fail "get_metadata(hubic://#{container}/#{path}): %s" %
+                    [ e.message ]
             end
-        }
-        rescue NoMethodError
-            fail "NoMehodError: uri = #{uri}"
-        rescue Exception => e
-            fail "get_metadata(hubic://#{container}/#{path}): %s" % [ e.message ]
+            break unless retrycount < maxretry && doretry == 1
+            retrycount += 1
+            sleep(10*retrycount)
         end
-        break unless retrycount < maxretry && doretry == 1
-        retrycount += 1
-        sleep(10*retrycount)
-        end
-
         meta
     ensure
         http.finish unless http.nil?
@@ -138,47 +138,48 @@ class Hubic
         retrycount = 0
         maxretry = 3
         loop do
-        doretry = 0
-        begin
-        http.request_get(uri.request_uri, hdrs) {|response|
-            case response
-            when Net::HTTPSuccess
-            when Net::HTTPRedirection
-                location = response['location']
-                fail "redirected to #{location}, not yet handled"
-            when Net::HTTPUnauthorized
-                # TODO: Need to refresh token
-            when Net::HTTPRequestTimeOut
-                doretry = 1
-            else
-                fail "resource unavailable: #{uri} (#{response.class} = #{response})"
+            doretry = 0
+            begin
+                http.request_get(uri.request_uri, hdrs) {|response|
+                    case response
+                    when Net::HTTPSuccess
+                    when Net::HTTPRedirection
+                        location = response['location']
+                        fail "redirected to #{location}, not yet handled"
+                    when Net::HTTPUnauthorized
+                        # TODO: Need to refresh token
+                    when Net::HTTPRequestTimeOut
+                        doretry = 1
+                    else
+                        fail "resource unavailable: #{uri} (#{response.class} = #{response})"
+                    end
+
+                    meta    = parse_response_for_meta(response)
+
+                    if block
+                        puts "block: #{block}"
+                        block.call(meta)
+                    end
+
+                    response.read_body {|segment|
+                        if    IO   === dst            then dst.write(segment)
+                        elsif Proc === dst            then dst.call(segment)
+                        elsif dst.respond_to?(:write) then dst.write(segment)
+                        elsif dst.respond_to?(:call ) then dst.call(segment)
+                        end
+    
+                        if block
+                            block.call(segment)
+                        end
+                    }
+                }
+            rescue Exception => e
+                fail "get_object(hubic://#{container}/#{path}): %s" %
+		    [ e.message ]
             end
-
-            meta    = parse_response_for_meta(response)
-
-            if block
-                puts "block: #{block}"
-                block.call(meta)
-            end
-
-            response.read_body {|segment|
-                if    IO   === dst            then dst.write(segment)
-                elsif Proc === dst            then dst.call(segment)
-                elsif dst.respond_to?(:write) then dst.write(segment)
-                elsif dst.respond_to?(:call ) then dst.call(segment)
-                end
-
-                if block
-                    block.call(segment)
-                end
-            }
-        }
-        rescue Exception => e
-            fail "get_object(hubic://#{container}/#{path}): %s" % [ e.message ]
-        end
-        break unless retrycount < maxretry && doretry == 1
-        retrycount += 1
-        sleep(10*retrycount)
+            break unless retrycount < maxretry && doretry == 1
+            retrycount += 1
+            sleep(10*retrycount)
         end
         if block
             block.call(:done)
@@ -202,31 +203,32 @@ class Hubic
         retrycount = 0
         maxretry = 3
         loop do
-        doretry = 0
-        begin
-        http.copy(uri.request_uri, hdrs) {|response|
-            case response
-            when Net::HTTPSuccess
-            when Net::HTTPRedirection
-                location = response['location']
-                fail "redirected to #{location}, not yet handled"
-            when Net::HTTPUnauthorized
-                # TODO: Need to refresh token
-            when Net::HTTPRequestTimeOut
-                doretry = 1
-            else
-                fail "resource unavailable: #{uri} (#{response.class} = #{response})"
+            doretry = 0
+            begin
+                http.copy(uri.request_uri, hdrs) {|response|
+                    case response
+                    when Net::HTTPSuccess
+                    when Net::HTTPRedirection
+                        location = response['location']
+                        fail "redirected to #{location}, not yet handled"
+                    when Net::HTTPUnauthorized
+                        # TODO: Need to refresh token
+                    when Net::HTTPRequestTimeOut
+                        doretry = 1
+                    else
+                        fail "resource unavailable: #{uri} (#{response.class} = #{response})"
+                    end
+
+                    meta    = parse_response_for_meta(response)
+
+                }
+            rescue Exception => e
+                fail "copy_object(hubic://%s/%s): %s" %
+                    [ container, path, e.message ]
             end
-
-            meta    = parse_response_for_meta(response)
-
-        }
-        rescue Exception => e
-            fail "copy_object(hubic://#{container}/#{path}): %s" % [ e.message ]
-        end
-        break unless retrycount < maxretry && doretry == 1
-        retrycount += 1
-        sleep(10*retrycount)
+            break unless retrycount < maxretry && doretry == 1
+            retrycount += 1
+            sleep(10*retrycount)
         end
 
         meta
@@ -257,35 +259,40 @@ class Hubic
         retrycount = 0
         maxretry = 3
         loop do
-        doretry = 0
-        http.request(request) {|response|
-            case response
-            when Net::HTTPSuccess
-                #puts "put_object: success! #{response}"
-            when Net::HTTPRedirection
-                location = response['location']
-                fail "redirected to #{location}, not yet handled"
-            when Net::HTTPUnauthorized
-                # TODO: Need to refresh token
-            when Net::HTTPRequestTimeOut
-                doretry = 1
-            when Net::HTTPServiceUnavailable
-                doretry = 1
-            when Errno::EPIPE
-                doretry = 1
-            when Net::HTTPBadGateway
-                doretry = 1
-            when Net::HTTPRequestEntityTooLarge
-                fail "Uploading a file (#{path}) that is too large for hubic"
-            else
-                fail "resource unavailable: #{uri} (#{response.class} = #{response})"
-            end
+            doretry = 0
+            begin
+                http.request(request) {|response|
+                    case response
+                    when Net::HTTPSuccess
+                        #puts "put_object: success! #{response}"
+                    when Net::HTTPRedirection
+                        location = response['location']
+                        fail "redirected to #{location}, not yet handled"
+                    when Net::HTTPUnauthorized
+                        # TODO: Need to refresh token
+                    when Net::HTTPRequestTimeOut
+                        doretry = 1
+                    when Net::HTTPServiceUnavailable
+                        doretry = 1
+                    when Errno::EPIPE
+                        doretry = 1
+                    when Net::HTTPBadGateway
+                        doretry = 1
+                    when Net::HTTPRequestEntityTooLarge
+                        fail "Uploading a file (#{path}) that is too large for hubic"
+                    else
+                        fail "resource unavailable: #{uri} (#{response.class} = #{response})"
+                    end
 
-            #puts response.inspect
-        }
-        break unless retrycount < maxretry && doretry == 1
-        retrycount += 1
-        sleep(10*retrycount)
+                    #puts response.inspect
+                }
+            rescue Exception => e
+                    fail "pub_object(hubic://%s/%s): %s" %
+                        [ container, path, e.message ]
+            end
+            break unless retrycount < maxretry && doretry == 1
+            retrycount += 1
+            sleep(10*retrycount)
         end
         if block
             puts "put_object(#{obj}): block: #{block}"
@@ -310,32 +317,37 @@ class Hubic
         retrycount = 0
         maxretry = 3
         loop do
-        doretry = 0
-        http.request(request) {|response|
-            case response
-            when Net::HTTPNoContent
-                puts "Successfully removed #{upath}"
-            when Net::HTTPSuccess
-                puts "Successfully removed #{upath}"
-            when Net::HTTPRedirection
-                location = response['location']
-                fail "redirected to #{location}, not yet handled"
-            when Net::HTTPUnauthorized
-                puts "Finish me .. refresh token code goes here"
-            when Net::HTTPRequestTimeOut
-                doretry = 1
-            when Net::HTTPNotFound
-                meta = nil
-                puts "#{upath} Not Found"
-            else
-                fail "resource unavailable: #{uri} (#{response.class} = #{response})"
+            doretry = 0
+            begin
+                http.request(request) {|response|
+                    case response
+                    when Net::HTTPNoContent
+                        puts "Successfully removed #{upath}"
+                    when Net::HTTPSuccess
+                        puts "Successfully removed #{upath}"
+                    when Net::HTTPRedirection
+                        location = response['location']
+                        fail "redirected to #{location}, not yet handled"
+                    when Net::HTTPUnauthorized
+                        puts "Finish me .. refresh token code goes here"
+                    when Net::HTTPRequestTimeOut
+                        doretry = 1
+                    when Net::HTTPNotFound
+                        meta = nil
+                        puts "#{upath} Not Found"
+                    else
+                        fail "resource unavailable: #{uri} (#{response.class} = #{response})"
+                    end
+        
+                    #puts response.inspect
+                }
+            rescue Exception => e
+                    fail "delete_object(hubic://%s/%s): %s" %
+                        [ container, path, e.message ]
             end
-
-            #puts response.inspect
-        }
-        break unless retrycount < maxretry && doretry == 1
-        retrycount += 1
-        sleep(10*retrycount)
+            break unless retrycount < maxretry && doretry == 1
+            retrycount += 1
+            sleep(10*retrycount)
         end
         if block
             block.call(:done)

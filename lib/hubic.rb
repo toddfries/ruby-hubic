@@ -241,31 +241,31 @@ class Hubic
         retrycount = 0
         maxretry = 3
         loop do
-        begin
-        r = @conn.post '/oauth/token', {
-            :refresh_token => @refresh_token,
-            :grant_type    => 'refresh_token',
-            :client_id     => @client_id,
-            :client_secret => @client_secret
-        }
-        rescue Faraday::TimeoutError
-            puts "Handling Faraday::TimeoutError"
-            doretry = 1
-        rescue Faraday::ConnectionFailed
-            puts "Handling Faraday::ConnectionFailed"
-            doretry = 1
-        rescue Errno::ETIMEDOUT
-            puts "Handling Errno::ETIMEDOUT"
-            doretry = 1
-        rescue Exception => e
-            fail "refresh_access_token: %s" % [ e.message ]
-        end
-        if r.body.nil? || r.body.size == 0
-            doretry = 1
-        end
-        retrycount += 1
-        break unless retrycount > maxretry && doretry > 0
-        sleep(10*retrycount)
+            begin
+                r = @conn.post '/oauth/token', {
+                    :refresh_token => @refresh_token,
+                    :grant_type    => 'refresh_token',
+                    :client_id     => @client_id,
+                    :client_secret => @client_secret
+                }
+            rescue Faraday::TimeoutError
+                puts "Handling Faraday::TimeoutError"
+                doretry = 1
+            rescue Faraday::ConnectionFailed
+                puts "Handling Faraday::ConnectionFailed"
+                doretry = 1
+            rescue Errno::ETIMEDOUT
+                puts "Handling Errno::ETIMEDOUT"
+                doretry = 1
+            rescue Exception => e
+                fail "refresh_access_token: %s" % [ e.message ]
+            end
+            if r.body.nil? || r.body.size == 0
+                doretry = 1
+            end
+            retrycount += 1
+            break unless retrycount > maxretry && doretry > 0
+            sleep(10*retrycount)
         end
 
 
@@ -288,21 +288,24 @@ class Hubic
         end
         #if r.body.re /<head><title>302 Found/
         begin
-        j = JSON.parse(r.body)
-        case r.status
-        when 200
-            #puts "json_parse: success (%s) body '%s'" % [ r.status, r.body ]
-            #puts "json_parse: parsed '%s'" % [ j.to_s ]
-        when 400, 401, 500
-            puts "json_parse: parsed '%s'" % [ j.to_s ]
-            puts "json_parse: http error (%s) body '%s'" % [ r.status, r.body ]
-            show_r_headers("json_parse", r)
-        else
-            puts "json_parse: unhandled response code (#{r.status})"
-            show_r_headers("json_parse", r)
-        end
+            j = JSON.parse(r.body)
+            case r.status
+            when 200
+                #puts "json_parse: success (%s) body '%s'" %
+                #    [ r.status, r.body ]
+                #puts "json_parse: parsed '%s'" % [ j.to_s ]
+            when 400, 401, 500
+                puts "json_parse: parsed '%s'" % [ j.to_s ]
+                puts "json_parse: http error (%s) body '%s'" %
+                    [ r.status, r.body ]
+                show_r_headers("json_parse", r)
+            else
+                puts "json_parse: unhandled response code (#{r.status})"
+                show_r_headers("json_parse", r)
+            end
         rescue JSON::ParserError
-            puts "JSON Parser Error... text = '%s', size = %d" % [ r.body, r.body.size ]
+            puts "JSON Parser Error... text = '%s', size = %d" %
+                [ r.body, r.body.size ]
             fail "Finish me..."
         end
         j
