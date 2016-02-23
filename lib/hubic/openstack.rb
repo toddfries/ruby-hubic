@@ -313,7 +313,10 @@ class Hubic
 
         http = init_http(uri)
 
-        request = Net::HTTP::Delete.new(uri.request_uri, hdrs)
+        ruri = uri.request_uri.sub("/\/$/") {|s| ""}
+        
+
+        request = Net::HTTP::Delete.new(ruri, hdrs)
         retrycount = 0
         maxretry = 3
         loop do
@@ -336,11 +339,16 @@ class Hubic
                         meta = nil
                         puts "#{upath} Not Found"
                     else
-                        fail "resource unavailable: #{uri} (#{response.class} = #{response})"
+                        puts ""
+                        puts "delete_obj(%s) Net::HTTP::Delete.new('%s', '%s')" % [ obj, ruri, hdrs ]
+                        fail "resource unavailable: %s (%s = %s/%s)" % [ uri, response.class, response, response.inspect ]
                     end
         
                     #puts response.inspect
                 }
+            rescue Net::HTTPConflict
+                    fail "delete_object(hubic://%s/%s): %s" %
+                        [ container, path, "HTTPConflict" ]
             rescue Exception => e
                     fail "delete_object(hubic://%s/%s): %s" %
                         [ container, path, e.message ]
