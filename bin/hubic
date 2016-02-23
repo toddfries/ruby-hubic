@@ -382,11 +382,14 @@ when 'df'
     acc = foru.account
     cred =  foru.credentials
     usage = foru.usage
-    puts "%12s %12s %s" % [ "Available", "Used", "1k blocks" ]
-    puts "%12d %12d %s %s <%s>" % [ usage['quota'] / 1024, usage['used'] / 1024,
+    puts "%12s %12s %12s %s" % [ "Quota", "Available", "Used", "1k blocks" ]
+    mytot = ( usage['quota'] / 1024 )
+    myava = ( ( usage['quota'] - usage['used'] ) / 1024 )
+    myuse = ( usage['quota'] / 1024 )
+    puts "%12d %12d %12d %s %s <%s>" % [ mytot, myava, myuse,
         acc['firstname'], acc['lastname'], acc['email'] ]
     foru.containers.each {|name, meta|
-       puts "%12d %12d %s" % [ 0, meta[:size] / 1024, name ]
+       puts "%12d %12d %12d %s" % [ mytot, myava, meta[:size] / 1024, name ]
     }
 when 'du'
     foru = Hubic.for_user(user)
