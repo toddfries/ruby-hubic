@@ -121,7 +121,7 @@ class Hubic
     def delete(obj)
 	# Check if obj exists before deleting
 	if (meta = get_metadata(obj)).nil?
-            puts "delete: the object #{obj} does not exist"
+            puts "delete: the path %s does not exist" % [ obj[:name] ]
 	else
 	    puts delete_object(obj)
 	end
