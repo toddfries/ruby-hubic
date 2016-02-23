@@ -334,15 +334,16 @@ when 'list', 'ls'
     ARGV.each {|path|
         if container.nil?
             entries = foru.list(path)
+            container = "default"
         else
             entries = foru.list(path, container)
         end
         entries.each {|file, meta|
             if ! path.nil?
                 file = file.split('/')[-1]
-                fullpath = "#{path}/#{file}"
+                fullpath = "hubic://#{container}/#{path}/#{file}"
             else
-                fullpath = file
+                fullpath = "hubic://#{container}/#{file}"
             end
 
             next if !copts.all && file[0] == ?. 
