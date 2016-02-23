@@ -108,6 +108,7 @@ class Hubic
         end
         break unless retrycount < maxretry && doretry == 1
         retrycount += 1
+        sleep(10*retrycount)
         end
 
         meta
@@ -177,6 +178,7 @@ class Hubic
         end
         break unless retrycount < maxretry && doretry == 1
         retrycount += 1
+        sleep(10*retrycount)
         end
         if block
             block.call(:done)
@@ -224,6 +226,7 @@ class Hubic
         end
         break unless retrycount < maxretry && doretry == 1
         retrycount += 1
+        sleep(10*retrycount)
         end
 
         meta
@@ -282,6 +285,7 @@ class Hubic
         }
         break unless retrycount < maxretry && doretry == 1
         retrycount += 1
+        sleep(10*retrycount)
         end
         if block
             puts "put_object(#{obj}): block: #{block}"
@@ -331,6 +335,7 @@ class Hubic
         }
         break unless retrycount < maxretry && doretry == 1
         retrycount += 1
+        sleep(10*retrycount)
         end
         if block
             block.call(:done)
@@ -485,6 +490,7 @@ class Hubic
             end
         #retrycount += 1
         #break unless retrycount < maxretry && doretry == 1
+        #sleep(10*retrycount)
         #end
     end
 

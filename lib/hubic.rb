@@ -265,6 +265,7 @@ class Hubic
         end
         retrycount += 1
         break unless retrycount > maxretry && doretry > 0
+        sleep(10*retrycount)
         end
 
 
