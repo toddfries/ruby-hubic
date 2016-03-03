@@ -62,7 +62,6 @@ class Hubic
         #puts "parse_response_for_meta: response = '#{response}'"
     end
 
-
     def get_metadata(obj)
         container, path, uri = normalize_object(obj)
         if uri.nil?

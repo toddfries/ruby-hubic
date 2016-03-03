@@ -60,7 +60,7 @@ class Hubic
     end
 
     def upload(src, obj, type=TYPE_OCTET_STREAM, &block)
-        #puts "upload(#{src},#{obj},#{type}): start"
+        #puts "upload(#{src},#{obj[:name]},#{type}): start"
         case src
         when String, Pathname
             type = (MIME::Types.of(src).first ||
@@ -72,8 +72,9 @@ class Hubic
             #puts "no file exists of this name, good deal!"
         elsif meta[:type] == TYPE_DIRECTORY
             srcbn = File.basename(src)
-            newobj = "#{obj}/#{srcbn}"
-            puts "NOTICE: #{obj} is a dir, changing destination to #{newobj}"
+            newobj = obj
+            newobj[:name] = "#{obj[:name]}/#{srcbn}"
+            puts "NOTICE: #{obj[:name]} is a dir, changing destination to #{newobj[:name]}"
             obj = newobj
 	    upload(src, obj, type)
             return

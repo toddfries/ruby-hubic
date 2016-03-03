@@ -44,6 +44,7 @@ options = OptionParser.new do |opts|
     opts.separator ""
     opts.separator "Note:"
     opts.separator "  'hubic -c foo rm /' will delete container 'foo'"
+    opts.separator "  'hubic -c foo mkdir /' will create container 'foo'"
     opts.separator ""
     opts.separator "Options:"
     
@@ -206,27 +207,36 @@ when 'upload'   # local -> hubic
         end
     }
     upcount=1
-    upfmt="upload[%d]: %s -> hubic://%s"
+    upfmt="upload[%d]: %s -> hubic://%s/%s"
     if dcount < 1
         # foo0.jpg cloud/testdir/foo0.jpg
         src = ARGV[0]
         dst = ARGV[1]
         #if verb > 0
-            str=upfmt % [ upcount, src, dst ]
+            str=upfmt % [ upcount, src, container, dst ]
             str = str.gsub(/\/\/\//) {|s| "//"}
             print str
         #end
-        foru.upload(src, dst)
+        dstobj = {
+            :name => dst,
+            :container => container
+        }
+        foru.upload(src, dstobj)
         puts " done."
     elsif dcount > 1
         raise "cannot specify more than one distination dir"
     else
         # foo0.jpg foo1.jpg foo2.jpg ... cloud/testdir
         myfiles.each{|path|
-            str=upfmt % [ upcount, path, mydir ]
+            str=upfmt % [ upcount, path, container, mydir ]
             str = str.gsub(/\/\/\//) {|s| "//"}
             print str
-            foru.upload(path, mydir)
+            pbn = File.basename(path)
+            dstobj = {
+                :name => "#{mydir}/#{pbn}",
+                :container => container
+            }
+            foru.upload(path, dstobj)
             puts " done."
             upcount += 1
         }
