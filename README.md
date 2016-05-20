@@ -65,3 +65,7 @@ export SSL_CERT_FILE=~/cacert.pem
 Limits
 ------
 https://hubic.com/en/limits
+
+Notes
+-----
+Due to the way this application uses on disk tokens, attempting to run more than one instance in parallel will result in abysmal behavior and many failed retries in both instances.  This should be fixed, but for now it is a limitation.
