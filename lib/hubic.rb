@@ -151,9 +151,9 @@ class Hubic
                 puts "json_parse returned nil, lets try again?"
                 doretry = 1
             elsif j['error'] == "invalid_token"
-                puts "api_hubic caught invalid_token attempting to refresh"
-		refresh_access_token
-                doretry = 1
+                puts "api_hubic caught invalid_token, not refreshing"
+		#refresh_access_token
+                #doretry = 1
             end
             break unless doretry == 1
             retrycount += 1
