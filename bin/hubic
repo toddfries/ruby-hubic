@@ -400,7 +400,7 @@ when 'df'
     puts "%12s %12s %12s %s" % [ "Quota", "Available", "Used", "1k blocks" ]
     mytot = ( usage['quota'] / 1024 )
     myava = ( ( usage['quota'] - usage['used'] ) / 1024 )
-    myuse = ( usage['quota'] / 1024 )
+    myuse = ( usage['used'] / 1024 )
     foru.containers.each {|name, meta|
        puts "%12d %12d %12d %s" % [ mytot, myava, meta[:size] / 1024, name ]
     }
